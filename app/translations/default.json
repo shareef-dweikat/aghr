@@ -1,0 +1,37 @@
+{
+    "home": {
+      "title": "Chrome Built-in AI",
+      "subtitle": "Choose an on-device API to try",
+      "apis": [
+        {
+          "name": "Prompt API",
+          "description": "General chat, Q&A, classification, multimodal"
+        },
+        {
+          "name": "Summarizer API",
+          "description": "Summarizing long text"
+        },
+        {
+          "name": "Writer API",
+          "description": "Generating new content"
+        },
+        {
+          "name": "Rewriter API",
+          "description": "Rewriting existing text"
+        },
+        {
+          "name": "Proofreader API",
+          "description": "Grammar and spelling fixes"
+        },
+        {
+          "name": "Translator API",
+          "description": "Translation"
+        },
+        {
+          "name": "Language Detector",
+          "description": "Detecting language"
+        }
+      ]
+    }
+  }
+  
