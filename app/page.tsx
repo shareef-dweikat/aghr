@@ -1,3 +1,4 @@
+import Link from "next/link";
 import defaultTranslations from "./translations/default.json";
 
 export default function Home() {
@@ -14,17 +15,32 @@ export default function Home() {
         </header>
 
         <ul className="flex flex-col gap-3">
-          {apis.map((api) => (
-            <li
-              key={api.name}
-              className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <span className="font-medium text-zinc-900 dark:text-zinc-50">{api.name}</span>
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                {api.description}
-              </span>
-            </li>
-          ))}
+          {apis.map((api) => {
+            const cardClassName =
+              "flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900";
+            const body = (
+              <>
+                <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                  {api.name}
+                </span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {api.description}
+                </span>
+              </>
+            );
+
+            return (
+              <li key={api.name}>
+                {"href" in api && api.href ? (
+                  <Link href={api.href} className={`${cardClassName} transition hover:border-zinc-400 dark:hover:border-zinc-600`}>
+                    {body}
+                  </Link>
+                ) : (
+                  <div className={cardClassName}>{body}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>

@@ -1,37 +1,65 @@
 {
-    "home": {
-      "title": "Chrome Built-in AI",
-      "subtitle": "Choose an on-device API to try",
-      "apis": [
-        {
-          "name": "Prompt API",
-          "description": "General chat, Q&A, classification, multimodal"
-        },
-        {
-          "name": "Summarizer API",
-          "description": "Summarizing long text"
-        },
-        {
-          "name": "Writer API",
-          "description": "Generating new content"
-        },
-        {
-          "name": "Rewriter API",
-          "description": "Rewriting existing text"
-        },
-        {
-          "name": "Proofreader API",
-          "description": "Grammar and spelling fixes"
-        },
-        {
-          "name": "Translator API",
-          "description": "Translation"
-        },
-        {
-          "name": "Language Detector",
-          "description": "Detecting language"
-        }
-      ]
-    }
+  "nav": {
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "new": "New",
+    "noConversations": "No conversations to show",
+    "login": "Log in",
+    "signup": "Sign up"
+  },
+  "home": {
+    "title": "Chrome Built-in AI",
+    "subtitle": "Choose an on-device API to try",
+    "apis": [
+      {
+        "name": "Prompt API",
+        "description": "General chat, Q&A, classification, multimodal",
+        "href": "/chat"
+      },
+      {
+        "name": "Summarizer API",
+        "description": "Summarizing long text"
+      },
+      {
+        "name": "Writer API",
+        "description": "Generating new content"
+      },
+      {
+        "name": "Rewriter API",
+        "description": "Rewriting existing text"
+      },
+      {
+        "name": "Proofreader API",
+        "description": "Grammar and spelling fixes"
+      },
+      {
+        "name": "Translator API",
+        "description": "Translation"
+      },
+      {
+        "name": "Language Detector",
+        "description": "Detecting language"
+      }
+    ]
+  },
+  "login": {
+    "title": "Log in",
+    "subtitle": "Sign in to continue",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Log in",
+    "noAccount": "Don't have an account?",
+    "signupLink": "Sign up"
+  },
+  "signup": {
+    "title": "Sign up",
+    "subtitle": "Create an account to get started",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Create account",
+    "hasAccount": "Already have an account?",
+    "loginLink": "Log in"
   }
-  
+}

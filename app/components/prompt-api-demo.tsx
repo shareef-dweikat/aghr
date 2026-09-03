@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Status =
   | "unsupported"
@@ -39,7 +40,8 @@ function statusLabel(status: Status, downloadProgress: number | null): string {
   }
 }
 
-export function PromptApiDemo() {
+export function PromptApiDemo({ conversationId }: { conversationId?: string }) {
+  const router = useRouter();
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [output, setOutput] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -47,6 +49,10 @@ export function PromptApiDemo() {
   const [error, setError] = useState<string | null>(null);
   const sessionRef = useRef<LanguageModelSession | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const conversationIdRef = useRef(conversationId);
+
+  conversationIdRef.current = conversationId;
+
 
   const cleanup = useCallback(() => {
     abortRef.current?.abort();
@@ -109,6 +115,10 @@ export function PromptApiDemo() {
       }
 
       setStatus("done");
+
+      if (conversationId !== conversationIdRef.current) {
+        router.replace(`/chat/${conversationIdRef.current}`);
+      }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setStatus("idle");
@@ -117,7 +127,7 @@ export function PromptApiDemo() {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Unknown error");
     }
-  }, [cleanup, prompt]);
+  }, [cleanup, conversationId, prompt, router]);
 
   const handleStop = useCallback(() => {
     cleanup();
