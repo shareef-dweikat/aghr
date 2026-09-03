@@ -11,33 +11,49 @@
   "home": {
     "title": "Chrome Built-in AI",
     "subtitle": "Choose an on-device API to try",
+    "availability": {
+      "checking": "Checking…",
+      "availableDownloaded": "Available · Downloaded",
+      "availableNotDownloaded": "Available · Not downloaded",
+      "downloading": "Available · Downloading…",
+      "unavailable": "Not available",
+      "unsupported": "Not supported in this browser"
+    },
     "apis": [
       {
+        "id": "prompt",
         "name": "Prompt API",
         "description": "General chat, Q&A, classification, multimodal",
         "href": "/chat"
       },
       {
+        "id": "summarizer",
         "name": "Summarizer API",
-        "description": "Summarizing long text"
+        "description": "Summarizing long text",
+        "href": "/chat/summarizer"
       },
       {
+        "id": "writer",
         "name": "Writer API",
         "description": "Generating new content"
       },
       {
+        "id": "rewriter",
         "name": "Rewriter API",
         "description": "Rewriting existing text"
       },
       {
+        "id": "proofreader",
         "name": "Proofreader API",
         "description": "Grammar and spelling fixes"
       },
       {
+        "id": "translator",
         "name": "Translator API",
         "description": "Translation"
       },
       {
+        "id": "language-detector",
         "name": "Language Detector",
         "description": "Detecting language"
       }

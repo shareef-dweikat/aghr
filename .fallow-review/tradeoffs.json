@@ -1,0 +1,81 @@
+{
+  "graph_snapshot_hash": "graph:9c7162a280a2cd92",
+  "abstained": false,
+  "tradeoffs": [
+    {
+      "id": "to:app/chat/summarizer/page.tsx:1:extensibility",
+      "anchor": "app/chat/summarizer/page.tsx:1",
+      "change_anchor": "chg:16572c0bd2979e0f",
+      "lens": "extensibility",
+      "observed": "Summarizer is mounted at a static route `/chat/summarizer` beside Prompt’s `/chat`, while `/chat/[id]` remains Prompt-only.",
+      "tradeoff": "A named static segment is clear and wins over `[id]` in the App Router. As more Built-in AI demos land, either `/chat/<api>` proliferates with repeated page shells, or conversation IDs and API type collide under one dynamic segment without a richer route model.",
+      "options": [
+        {
+          "move": "Keep as is",
+          "gains": "Matches Prompt’s shallow routing today; no conversation/API model required.",
+          "costs": "Each new API needs another static page and PlusIcon shell; conversation history cannot distinguish API type."
+        },
+        {
+          "move": "Make a type boundary explicit so downstream branching disappears",
+          "gains": "A single chat route keyed by API id (or typed conversation records) scales without one folder per API.",
+          "costs": "Needs a routing/data model before Writer/Rewriter exist, and more upfront wiring than a static page."
+        }
+      ],
+      "question": "How should additional Built-in AI demos be routed relative to `/chat` and `/chat/[id]`?",
+      "consequence": "medium",
+      "confidence": "medium",
+      "captured": true,
+      "deterministic": false
+    },
+    {
+      "id": "to:app/components/summarizer-api-demo.tsx:63:abstraction",
+      "anchor": "app/components/summarizer-api-demo.tsx:63",
+      "change_anchor": "chg:42c644d23e838e1f",
+      "lens": "abstraction",
+      "observed": "SummarizerApiDemo is a near-copy of PromptApiDemo’s status machine, download monitor, abort/cleanup, and Generate/Stop UI, with Summarizer-specific create options and summarizeStreaming.",
+      "tradeoff": "Shipping a second full demo keeps each API page self-contained and matches the plan’s YAGNI stance. The same lifecycle now lives in two ~200-line components (fallow reports 5 clone groups / 104 shared lines), so a third API would multiply that cost.",
+      "options": [
+        {
+          "move": "Keep as is",
+          "gains": "No shared abstraction to design yet; Summarizer can diverge (type/length/format) without negotiating a common shell.",
+          "costs": "Lifecycle and UI fixes must be applied twice; Writer/Rewriter will likely add more clones."
+        },
+        {
+          "move": "Extract a helper, or split a large file into focused modules",
+          "gains": "One place owns availability → download → stream → abort; API demos only supply create/run adapters and option fields.",
+          "costs": "Requires designing a shared contract now for only two callers, and may overfit Prompt+Summarizer."
+        }
+      ],
+      "question": "Under what conditions should the Prompt and Summarizer demo lifecycle be shared versus kept duplicated?",
+      "consequence": "high",
+      "confidence": "high",
+      "captured": true,
+      "deterministic": false
+    },
+    {
+      "id": "to:app/components/summarizer-api-demo.tsx:107:state-ownership",
+      "anchor": "app/components/summarizer-api-demo.tsx:107",
+      "change_anchor": "chg:42c644d23e838e1f",
+      "lens": "state-ownership",
+      "observed": "Each Summarize click creates a new Summarizer session with the current type/format/length, streams, then leaves cleanup to stop/next run (destroy on cleanup).",
+      "tradeoff": "Recreating on every run always applies the latest option selects and matches Chrome’s “options fixed at create” rule. Holding a long-lived session would avoid re-download/create cost when options are unchanged, but would require invalidating the session when type/length/format change.",
+      "options": [
+        {
+          "move": "Keep as is",
+          "gains": "Option changes always take effect; no session/option sync bugs.",
+          "costs": "Repeated create overhead on every Summarize, including when options did not change."
+        },
+        {
+          "move": "Separate orchestration from business logic",
+          "gains": "A retained session can be reused when options are unchanged and recreated only when they change.",
+          "costs": "Session lifecycle and option-diff logic become another state machine to maintain."
+        }
+      ],
+      "question": "When should a Summarizer session be reused across Summarize clicks versus created fresh each time?",
+      "consequence": "medium",
+      "confidence": "medium",
+      "captured": true,
+      "deterministic": false
+    }
+  ]
+}
