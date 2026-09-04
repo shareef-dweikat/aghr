@@ -2,27 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { checkApiAvailability } from "../lib/chrome-ai";
 import {
-  chromeAiStatusMessage,
+  useChromeAiChatRun,
   type ChromeAiStatusCopy,
 } from "./chrome-ai-demo-shell";
 import {
   ChatComposer,
   ChatMessageList,
   ChatStatusBanner,
-  type ChatMessage,
 } from "./chat-thread";
-
-type ChromeAiDemoStatus =
-  | "unsupported"
-  | "unavailable"
-  | "checking"
-  | "downloading"
-  | "ready"
-  | "streaming"
-  | "done"
-  | "error";
 
 const TYPE_OPTIONS: SummarizerType[] = [
   "key-points",
@@ -50,9 +38,6 @@ const STATUS_COPY: ChromeAiStatusCopy = {
   done: "Done.",
   error: "Something went wrong.",
 };
-
-const BLOCKED_AVAILABILITY = new Set(["unsupported", "unavailable"]);
-const DOWNLOAD_AVAILABILITY = new Set(["downloadable", "downloading"]);
 
 function SummarizerSettingsMenu({
   type,
@@ -190,132 +175,41 @@ function SummarizerSettingsMenu({
 }
 
 export function SummarizerApiDemo() {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [type, setType] = useState<SummarizerType>("key-points");
   const [length, setLength] = useState<SummarizerLength>("medium");
   const [format, setFormat] = useState<SummarizerFormat>("markdown");
-  const [status, setStatus] = useState<ChromeAiDemoStatus | null>(null);
-  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
 
-  const sessionRef = useRef<SummarizerSession | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const {
+    input,
+    setInput,
+    messages,
+    isRunning,
+    handleStop,
+    run,
+    statusMessage,
+    isWarningStatus,
+  } = useChromeAiChatRun({ apiId: "summarizer", statusCopy: STATUS_COPY });
 
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-      abortRef.current = null;
-      sessionRef.current?.destroy();
-      sessionRef.current = null;
-    };
-  }, []);
-
-  const handleStop = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setIsRunning(false);
-  }, []);
-
-  const handleSummarize = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isRunning) {
-      return;
-    }
-
-    setInput("");
-    setError(null);
-    setDownloadProgress(null);
-    setIsRunning(true);
-    setStatus("checking");
-
-    setMessages((current) => [
-      ...current,
-      { role: "user", content: text },
-      { role: "assistant", content: "" },
-    ]);
-
-    try {
-      const availability = await checkApiAvailability("summarizer");
-
-      if (BLOCKED_AVAILABILITY.has(availability)) {
-        setStatus(availability as ChromeAiDemoStatus);
-        setMessages((current) => current.slice(0, -2));
-        return;
-      }
-
-      if (DOWNLOAD_AVAILABILITY.has(availability)) {
-        setStatus("downloading");
-      }
-
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      sessionRef.current?.destroy();
-      sessionRef.current = null;
+  const handleSummarize = useCallback(() => {
+    void run(async (text, ctx) => {
+      ctx.getSession()?.destroy();
+      ctx.setSession(null);
 
       const session = await Summarizer.create({
         type,
         format,
         length,
         expectedInputLanguages: ["en"],
-        signal: controller.signal,
-        monitor(m) {
-          m.addEventListener("downloadprogress", (e: Event) => {
-            const progress = (e as ProgressEvent).loaded;
-            setDownloadProgress(Math.round(progress * 100));
-          });
-        },
+        signal: ctx.signal,
+        monitor: ctx.monitor,
       });
-      sessionRef.current = session;
+      ctx.setSession(session);
 
-      setStatus("streaming");
-
-      const stream = session.summarizeStreaming(text, {
-        signal: controller.signal,
+      return session.summarizeStreaming(text, {
+        signal: ctx.signal,
       });
-
-      let summary = "";
-      for await (const chunk of stream) {
-        summary += chunk;
-        const snapshot = summary;
-        setMessages((current) => {
-          if (current.length === 0) {
-            return current;
-          }
-          const next = current.slice();
-          next[next.length - 1] = { role: "assistant", content: snapshot };
-          return next;
-        });
-      }
-
-      setStatus("done");
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        return;
-      }
-
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setIsRunning(false);
-      abortRef.current = null;
-    }
-  }, [format, input, isRunning, length, type]);
-
-  const rawStatusMessage = chromeAiStatusMessage(
-    status,
-    downloadProgress,
-    STATUS_COPY,
-    error,
-  );
-  const statusMessage =
-    status === "done" || status === "ready" ? "" : rawStatusMessage;
-  const isWarningStatus =
-    status === "error" ||
-    status === "unsupported" ||
-    status === "unavailable";
+    });
+  }, [format, length, run, type]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
