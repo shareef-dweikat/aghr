@@ -2,20 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import defaultTranslations from "../translations/default.json";
 
 import {
   checkApiAvailability,
   type ChromeAiAvailabilityStatus,
 } from "../lib/chrome-ai";
 
-export type HomeApi = {
+ type HomeApi = {
   id: string;
   name: string;
   description: string;
   href?: string;
 };
 
-export type AvailabilityCopy = {
+ type Availability = {
   checking: string;
   availableDownloaded: string;
   availableNotDownloaded: string;
@@ -26,7 +27,7 @@ export type AvailabilityCopy = {
 
 type CardStatus = ChromeAiAvailabilityStatus | "checking";
 
-const STATUS_LABEL_KEYS: Record<CardStatus, keyof AvailabilityCopy> = {
+const STATUS_LABEL_KEYS: Record<CardStatus, keyof Availability> = {
   available: "availableDownloaded",
   downloadable: "availableNotDownloaded",
   downloading: "downloading",
@@ -44,7 +45,7 @@ const STATUS_CLASS_NAMES: Record<CardStatus, string> = {
   checking: "text-zinc-400 dark:text-zinc-500",
 };
 
-function statusLabel(status: CardStatus, copy: AvailabilityCopy): string {
+function statusLabel(status: CardStatus, copy: Availability): string {
   return copy[STATUS_LABEL_KEYS[status]];
 }
 
@@ -53,22 +54,15 @@ function statusClassName(status: CardStatus): string {
 }
 
 export function HomeApiList({
-  apis,
-  availabilityCopy,
 }: {
-  apis: HomeApi[];
-  availabilityCopy: AvailabilityCopy;
 }) {
+  const { apis, availability }: { apis: HomeApi[], availability: Availability } = defaultTranslations.home;
   const [statuses, setStatuses] = useState<Partial<Record<string, CardStatus>>>(
     {},
   );
 
   useEffect(() => {
     let cancelled = false;
-
-    setStatuses(
-      Object.fromEntries(apis.map((api) => [api.id, "checking" as const])),
-    );
 
     void Promise.all(
       apis.map(async (api) => {
@@ -84,7 +78,7 @@ export function HomeApiList({
     return () => {
       cancelled = true;
     };
-  }, [apis]);
+  }, []);
 
   return (
     <ul className="flex flex-col gap-3">
@@ -104,7 +98,7 @@ export function HomeApiList({
               className={`text-xs ${statusClassName(status)}`}
               role="status"
             >
-              {statusLabel(status, availabilityCopy)}
+              {statusLabel(status, availability)}
             </span>
           </>
         );

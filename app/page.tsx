@@ -2,7 +2,7 @@ import { HomeApiList } from "./components/home-api-list";
 import defaultTranslations from "./translations/default.json";
 
 export default function Home() {
-  const { title, subtitle, apis, availability } = defaultTranslations.home;
+  const { title, subtitle } = defaultTranslations.home;
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center bg-zinc-50 py-12 font-sans dark:bg-black">
@@ -14,7 +14,7 @@ export default function Home() {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{subtitle}</p>
         </header>
 
-        <HomeApiList apis={apis} availabilityCopy={availability} />
+        <HomeApiList  />
       </div>
     </div>
   );
