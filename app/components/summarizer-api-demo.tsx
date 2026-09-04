@@ -11,6 +11,7 @@ import {
   ChatMessageList,
   ChatStatusBanner,
 } from "./chat-thread";
+import { useChatConversationRoute } from "./use-chat-conversation-route";
 
 const TYPE_OPTIONS: SummarizerType[] = [
   "key-points",
@@ -174,10 +175,18 @@ function SummarizerSettingsMenu({
   );
 }
 
-export function SummarizerApiDemo() {
+export function SummarizerApiDemo({
+  conversationId,
+}: {
+  conversationId: string;
+}) {
   const [type, setType] = useState<SummarizerType>("key-points");
   const [length, setLength] = useState<SummarizerLength>("medium");
   const [format, setFormat] = useState<SummarizerFormat>("markdown");
+  const { ensureConversationRoute } = useChatConversationRoute({
+    apiId: "summarizer",
+    conversationId,
+  });
 
   const {
     input,
@@ -191,25 +200,33 @@ export function SummarizerApiDemo() {
   } = useChromeAiChatRun({ apiId: "summarizer", statusCopy: STATUS_COPY });
 
   const handleSummarize = useCallback(() => {
-    void run(async (text, ctx) => {
-      ctx.getSession()?.destroy();
-      ctx.setSession(null);
+    const title = input.trim();
+    void run(
+      async (text, ctx) => {
+        ctx.getSession()?.destroy();
+        ctx.setSession(null);
 
-      const session = await Summarizer.create({
-        type,
-        format,
-        length,
-        expectedInputLanguages: ["en"],
-        signal: ctx.signal,
-        monitor: ctx.monitor,
-      });
-      ctx.setSession(session);
+        const session = await Summarizer.create({
+          type,
+          format,
+          length,
+          expectedInputLanguages: ["en"],
+          signal: ctx.signal,
+          monitor: ctx.monitor,
+        });
+        ctx.setSession(session);
 
-      return session.summarizeStreaming(text, {
-        signal: ctx.signal,
-      });
-    });
-  }, [format, length, run, type]);
+        return session.summarizeStreaming(text, {
+          signal: ctx.signal,
+        });
+      },
+      {
+        onComplete() {
+          ensureConversationRoute(title);
+        },
+      },
+    );
+  }, [ensureConversationRoute, format, input, length, run, type]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

@@ -1,9 +1,15 @@
-import { PromptApiDemo } from "../components/prompt-api-demo";
+import { redirect } from "next/navigation";
 
-export default function ChatPage() {
-  return (
-    <div className="flex h-dvh flex-col bg-zinc-50 pt-14 font-sans dark:bg-black">
-      <PromptApiDemo />
-    </div>
-  );
+import { isChatApiId } from "../lib/conversations";
+
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ api?: string }>;
+}) {
+  const { api } = await searchParams;
+  const apiId = isChatApiId(api) ? api : "prompt";
+  const id = crypto.randomUUID();
+
+  redirect(`/chat/${id}?api=${apiId}`);
 }

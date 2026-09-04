@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 
 import {
   useChromeAiChatRun,
@@ -12,6 +11,7 @@ import {
   ChatMessageList,
   ChatStatusBanner,
 } from "./chat-thread";
+import { useChatConversationRoute } from "./use-chat-conversation-route";
 
 const STATUS_COPY: ChromeAiStatusCopy = {
   unsupported:
@@ -26,10 +26,11 @@ const STATUS_COPY: ChromeAiStatusCopy = {
   error: "Something went wrong.",
 };
 
-export function PromptApiDemo({ conversationId }: { conversationId?: string }) {
-  const router = useRouter();
-  const conversationIdRef = useRef(conversationId);
-  conversationIdRef.current = conversationId;
+export function PromptApiDemo({ conversationId }: { conversationId: string }) {
+  const { ensureConversationRoute } = useChatConversationRoute({
+    apiId: "prompt",
+    conversationId,
+  });
 
   const {
     input,
@@ -43,6 +44,7 @@ export function PromptApiDemo({ conversationId }: { conversationId?: string }) {
   } = useChromeAiChatRun({ apiId: "prompt", statusCopy: STATUS_COPY });
 
   const handleSend = useCallback(() => {
+    const title = input.trim();
     void run(
       async (prompt, ctx) => {
         let session = ctx.getSession() as LanguageModelSession | null;
@@ -60,13 +62,11 @@ export function PromptApiDemo({ conversationId }: { conversationId?: string }) {
       },
       {
         onComplete() {
-          if (conversationId !== conversationIdRef.current) {
-            router.replace(`/chat/${conversationIdRef.current}`);
-          }
+          ensureConversationRoute(title);
         },
       },
     );
-  }, [conversationId, router, run]);
+  }, [ensureConversationRoute, input, run]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

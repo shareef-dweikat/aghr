@@ -4,6 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import {
+  listConversations,
+  type Conversation,
+} from "../lib/conversations";
 import defaultTranslations from "../translations/default.json";
 
 const accountLinks = [
@@ -20,7 +24,7 @@ function linkClassName(isActive: boolean) {
 
 export function SiteDrawer() {
   const [open, setOpen] = useState(false);
-  const [conversations, setConversations] = useState<[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const pathname = usePathname();
   const { nav } = defaultTranslations;
 
@@ -34,7 +38,7 @@ export function SiteDrawer() {
       return;
     }
 
-    setConversations([]);
+    setConversations(listConversations());
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {

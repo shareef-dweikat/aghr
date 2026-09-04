@@ -30,7 +30,7 @@
         "id": "summarizer",
         "name": "Summarizer API",
         "description": "Summarizing long text",
-        "href": "/chat/summarizer"
+        "href": "/chat?api=summarizer"
       },
       {
         "id": "writer",
