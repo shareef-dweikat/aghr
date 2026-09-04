@@ -42,7 +42,6 @@ const STATUS_COPY: ChromeAiStatusCopy = {
   streaming: "Generating summary…",
   done: "Done.",
   error: "Something went wrong.",
-  idle: "Click Summarize to generate a summary.",
 };
 
 export function SummarizerApiDemo() {
@@ -76,9 +75,6 @@ export function SummarizerApiDemo() {
 
   return (
     <ChromeAiDemoShell
-      title="Chrome Summarizer API"
-      apiSymbol="Summarizer"
-      subtitlePrefix="On-device summarization via"
       statusMessage={chromeAiStatusMessage(
         status,
         downloadProgress,

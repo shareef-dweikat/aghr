@@ -7,7 +7,6 @@ import { checkApiAvailability } from "../lib/chrome-ai";
 type ChromeAiDemoStatus =
   | "unsupported"
   | "unavailable"
-  | "idle"
   | "checking"
   | "downloading"
   | "ready"
@@ -34,7 +33,6 @@ export type ChromeAiStatusCopy = {
   streaming: string;
   done: string;
   error: string;
-  idle: string;
 };
 
 const textareaClassName =
@@ -46,20 +44,17 @@ const primaryButtonClassName =
 const secondaryButtonClassName =
   "rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800";
 
-function isChromeAiDemoRunning(status: ChromeAiDemoStatus): boolean {
-  return (
-    status === "checking" || status === "downloading" || status === "streaming"
-  );
-}
-
 export function chromeAiStatusMessage(
-  status: ChromeAiDemoStatus,
+  status: ChromeAiDemoStatus | null,
   downloadProgress: number | null,
   copy: ChromeAiStatusCopy,
   error?: string | null,
 ): string {
   if (error) {
     return error;
+  }
+  if (!status) {
+    return "";
   }
   if (status === "downloading") {
     return copy.downloading(downloadProgress ?? 0);
@@ -94,7 +89,6 @@ function applyChromeAiRunError(
   setError: (message: string | null) => void,
 ): void {
   if (err instanceof DOMException && err.name === "AbortError") {
-    setStatus("idle");
     return;
   }
 
@@ -104,9 +98,10 @@ function applyChromeAiRunError(
 
 export function useChromeAiRun(apiId: string) {
   const [output, setOutput] = useState("");
-  const [status, setStatus] = useState<ChromeAiDemoStatus>("idle");
+  const [status, setStatus] = useState<ChromeAiDemoStatus | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
   const sessionRef = useRef<DestroyableSession | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -119,7 +114,6 @@ export function useChromeAiRun(apiId: string) {
 
   const handleStop = useCallback(() => {
     cleanup();
-    setStatus("idle");
   }, [cleanup]);
 
   const run = useCallback(
@@ -130,6 +124,7 @@ export function useChromeAiRun(apiId: string) {
       setOutput("");
       setError(null);
       setDownloadProgress(null);
+      setIsRunning(true);
       setStatus("checking");
 
       try {
@@ -167,6 +162,8 @@ export function useChromeAiRun(apiId: string) {
       } catch (err) {
         applyChromeAiRunError(err, setStatus, setError);
         return false;
+      } finally {
+        setIsRunning(false);
       }
     },
     [apiId, cleanup],
@@ -177,7 +174,7 @@ export function useChromeAiRun(apiId: string) {
     status,
     downloadProgress,
     error,
-    isRunning: isChromeAiDemoRunning(status),
+    isRunning,
     handleStop,
     run,
   };
@@ -190,6 +187,10 @@ function DemoStatusBanner({
   message: string;
   isWarning: boolean;
 }) {
+  if (!message) {
+    return null;
+  }
+
   const className = isWarning
     ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
     : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400";
@@ -255,9 +256,6 @@ function DemoOutput({ label, output }: { label: string; output: string }) {
 }
 
 export function ChromeAiDemoShell({
-  title,
-  apiSymbol,
-  subtitlePrefix,
   statusMessage,
   isWarningStatus,
   options,
@@ -273,9 +271,6 @@ export function ChromeAiDemoShell({
   output,
   outputLabel,
 }: {
-  title: string;
-  apiSymbol: string;
-  subtitlePrefix: string;
   statusMessage: string;
   isWarningStatus: boolean;
   options?: ReactNode;
@@ -293,18 +288,6 @@ export function ChromeAiDemoShell({
 }) {
   return (
     <div className="flex w-full max-w-2xl flex-col gap-6 px-6">
-      <header className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          {title}
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {subtitlePrefix}{" "}
-          <code className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">
-            {apiSymbol}
-          </code>
-        </p>
-      </header>
-
       <DemoStatusBanner message={statusMessage} isWarning={isWarningStatus} />
       {options}
 

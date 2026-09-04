@@ -24,7 +24,6 @@ const STATUS_COPY: ChromeAiStatusCopy = {
   streaming: "Generating response…",
   done: "Done.",
   error: "Something went wrong.",
-  idle: "Click Generate to run a prompt.",
 };
 
 export function PromptApiDemo({ conversationId }: { conversationId?: string }) {
@@ -57,9 +56,6 @@ export function PromptApiDemo({ conversationId }: { conversationId?: string }) {
 
   return (
     <ChromeAiDemoShell
-      title="Chrome Prompt API"
-      apiSymbol="LanguageModel"
-      subtitlePrefix="On-device Gemini Nano via"
       statusMessage={chromeAiStatusMessage(
         status,
         downloadProgress,
