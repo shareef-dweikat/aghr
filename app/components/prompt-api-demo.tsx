@@ -1,17 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { checkApiAvailability } from "../lib/chrome-ai";
 import {
-  ChromeAiDemoShell,
   chromeAiStatusMessage,
-  useChromeAiRun,
   type ChromeAiStatusCopy,
 } from "./chrome-ai-demo-shell";
+import {
+  ChatComposer,
+  ChatMessageList,
+  ChatStatusBanner,
+  type ChatMessage,
+} from "./chat-thread";
 
-const DEFAULT_PROMPT =
-  "Write a short, friendly poem about building web apps with on-device AI.";
+type ChromeAiDemoStatus =
+  | "unsupported"
+  | "unavailable"
+  | "checking"
+  | "downloading"
+  | "ready"
+  | "streaming"
+  | "done"
+  | "error";
 
 const STATUS_COPY: ChromeAiStatusCopy = {
   unsupported:
@@ -20,63 +32,167 @@ const STATUS_COPY: ChromeAiStatusCopy = {
     "Gemini Nano is unavailable on this device (hardware or OS requirements not met).",
   checking: "Checking model availability…",
   downloading: (progress) => `Downloading model… ${progress}%`,
-  ready: "Model ready. Click Generate to run a prompt.",
+  ready: "Model ready. Send a message to chat.",
   streaming: "Generating response…",
   done: "Done.",
   error: "Something went wrong.",
 };
 
+const BLOCKED_AVAILABILITY = new Set(["unsupported", "unavailable"]);
+const DOWNLOAD_AVAILABILITY = new Set(["downloadable", "downloading"]);
+
 export function PromptApiDemo({ conversationId }: { conversationId?: string }) {
   const router = useRouter();
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [status, setStatus] = useState<ChromeAiDemoStatus | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+
   const conversationIdRef = useRef(conversationId);
-  const {
-    output,
-    status,
-    downloadProgress,
-    error,
-    isRunning,
-    handleStop,
-    run,
-  } = useChromeAiRun("prompt");
+  const sessionRef = useRef<LanguageModelSession | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   conversationIdRef.current = conversationId;
 
-  const handleGenerate = useCallback(async () => {
-    const ok = await run(async ({ signal, monitor, setSession }) => {
-      const session = await LanguageModel.create({ monitor });
-      setSession(session);
-      return session.promptStreaming(prompt, { signal });
-    });
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      sessionRef.current?.destroy();
+      sessionRef.current = null;
+    };
+  }, []);
 
-    if (ok && conversationId !== conversationIdRef.current) {
-      router.replace(`/chat/${conversationIdRef.current}`);
+  const handleStop = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsRunning(false);
+  }, []);
+
+  const handleSend = useCallback(async () => {
+    const prompt = input.trim();
+    if (!prompt || isRunning) {
+      return;
     }
-  }, [conversationId, prompt, router, run]);
+
+    setInput("");
+    setError(null);
+    setDownloadProgress(null);
+    setIsRunning(true);
+    setStatus("checking");
+
+    setMessages((current) => [
+      ...current,
+      { role: "user", content: prompt },
+      { role: "assistant", content: "" },
+    ]);
+
+    try {
+      const availability = await checkApiAvailability("prompt");
+
+      if (BLOCKED_AVAILABILITY.has(availability)) {
+        setStatus(availability as ChromeAiDemoStatus);
+        setMessages((current) => current.slice(0, -2));
+        return;
+      }
+
+      if (DOWNLOAD_AVAILABILITY.has(availability)) {
+        setStatus("downloading");
+      }
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      let session = sessionRef.current;
+      if (!session) {
+        session = await LanguageModel.create({
+          signal: controller.signal,
+          monitor(m) {
+            m.addEventListener("downloadprogress", (e: Event) => {
+              const progress = (e as ProgressEvent).loaded;
+              setDownloadProgress(Math.round(progress * 100));
+            });
+          },
+        });
+        sessionRef.current = session;
+      }
+
+      setStatus("streaming");
+
+      const stream = session.promptStreaming(prompt, {
+        signal: controller.signal,
+      });
+
+      let text = "";
+      for await (const chunk of stream) {
+        text += chunk;
+        const snapshot = text;
+        setMessages((current) => {
+          if (current.length === 0) {
+            return current;
+          }
+          const next = current.slice();
+          next[next.length - 1] = { role: "assistant", content: snapshot };
+          return next;
+        });
+      }
+
+      setStatus("done");
+
+      if (conversationId !== conversationIdRef.current) {
+        router.replace(`/chat/${conversationIdRef.current}`);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+
+      setStatus("error");
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setIsRunning(false);
+      abortRef.current = null;
+    }
+  }, [conversationId, input, isRunning, router]);
+
+  const rawStatusMessage = chromeAiStatusMessage(
+    status,
+    downloadProgress,
+    STATUS_COPY,
+    error,
+  );
+  const statusMessage =
+    status === "done" || status === "ready" ? "" : rawStatusMessage;
+  const isWarningStatus =
+    status === "error" ||
+    status === "unsupported" ||
+    status === "unavailable";
 
   return (
-    <ChromeAiDemoShell
-      statusMessage={chromeAiStatusMessage(
-        status,
-        downloadProgress,
-        STATUS_COPY,
-        error,
-      )}
-      isWarningStatus={
-        status === "error" ||
-        status === "unsupported" ||
-        status === "unavailable"
-      }
-      inputLabel="Prompt"
-      input={prompt}
-      onInputChange={setPrompt}
-      actionLabel="Generate"
-      onAction={handleGenerate}
-      onStop={handleStop}
-      isRunning={isRunning}
-      canSubmit={Boolean(prompt.trim())}
-      output={output}
-      outputLabel="Response"
-    />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <ChatMessageList
+        messages={messages}
+        emptyLabel="Send a message to start"
+      />
+
+      <div className="flex flex-col gap-2 px-4 pt-2 sm:px-6">
+        <ChatStatusBanner
+          message={statusMessage}
+          isWarning={isWarningStatus}
+        />
+      </div>
+
+      <ChatComposer
+        value={input}
+        onChange={setInput}
+        onSubmit={handleSend}
+        onStop={handleStop}
+        isRunning={isRunning}
+        canSubmit={Boolean(input.trim())}
+        placeholder="Message"
+      />
+    </div>
   );
 }

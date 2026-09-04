@@ -78,6 +78,14 @@ export function SiteDrawer() {
           }`}
       >
         <nav className="flex min-h-0 flex-1 flex-col px-4" aria-label={nav.menu}>
+          <Link
+            href="/"
+            className={`${linkClassName(pathname === "/")} mb-3 flex items-center gap-2`}
+          >
+            <PlusIcon />
+            {nav.new}
+          </Link>
+
           <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
             {conversations.length === 0 ? (
               <p className="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
@@ -145,6 +153,22 @@ function CloseIcon() {
       strokeLinecap="round"
     >
       <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M12 5v14M5 12h14" />
     </svg>
   );
 }
