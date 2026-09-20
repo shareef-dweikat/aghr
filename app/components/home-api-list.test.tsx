@@ -171,6 +171,35 @@ describe("HomeApiList", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps available Translator cards as links to the demo", async () => {
+    mockAllStatuses("available");
+    render(<HomeApiList />);
+
+    const translatorLink = await screen.findByRole("link", {
+      name: /Translator API/i,
+    });
+    expect(translatorLink).toHaveAttribute("href", "/chat?api=translator");
+    expect(
+      screen.queryByRole("button", { name: /Translator API/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [/^Rewriter API/, "/chat?api=rewriter"],
+    [/^Proofreader API/, "/chat?api=proofreader"],
+    [/^Language Detector/, "/chat?api=language-detector"],
+  ] as const)(
+    "keeps available %s cards as links to the demo",
+    async (name, href) => {
+      mockAllStatuses("available");
+      render(<HomeApiList />);
+
+      const link = await screen.findByRole("link", { name });
+      expect(link).toHaveAttribute("href", href);
+      expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+    },
+  );
+
   it("does not turn checking cards into enablement actions", async () => {
     checkApiAvailability.mockImplementation(
       () => new Promise(() => undefined),

@@ -8,8 +8,12 @@ import {
   type ChatApiId,
   type Conversation,
 } from "../lib/conversations";
+import { LanguageDetectorApiDemo } from "./language-detector-api-demo";
 import { PromptApiDemo } from "./prompt-api-demo";
+import { ProofreaderApiDemo } from "./proofreader-api-demo";
+import { RewriterApiDemo } from "./rewriter-api-demo";
 import { SummarizerApiDemo } from "./summarizer-api-demo";
+import { TranslatorApiDemo } from "./translator-api-demo";
 import { WriterApiDemo } from "./writer-api-demo";
 
 function ChatDemo({
@@ -25,6 +29,22 @@ function ChatDemo({
 
   if (apiId === "writer") {
     return <WriterApiDemo conversationId={conversationId} />;
+  }
+
+  if (apiId === "rewriter") {
+    return <RewriterApiDemo conversationId={conversationId} />;
+  }
+
+  if (apiId === "proofreader") {
+    return <ProofreaderApiDemo conversationId={conversationId} />;
+  }
+
+  if (apiId === "translator") {
+    return <TranslatorApiDemo conversationId={conversationId} />;
+  }
+
+  if (apiId === "language-detector") {
+    return <LanguageDetectorApiDemo conversationId={conversationId} />;
   }
 
   return <PromptApiDemo conversationId={conversationId} />;

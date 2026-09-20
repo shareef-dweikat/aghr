@@ -32,6 +32,32 @@ vi.mock("./writer-api-demo", () => ({
   ),
 }));
 
+vi.mock("./rewriter-api-demo", () => ({
+  RewriterApiDemo: ({ conversationId }: { conversationId: string }) => (
+    <div>rewriter:{conversationId}</div>
+  ),
+}));
+
+vi.mock("./proofreader-api-demo", () => ({
+  ProofreaderApiDemo: ({ conversationId }: { conversationId: string }) => (
+    <div>proofreader:{conversationId}</div>
+  ),
+}));
+
+vi.mock("./translator-api-demo", () => ({
+  TranslatorApiDemo: ({ conversationId }: { conversationId: string }) => (
+    <div>translator:{conversationId}</div>
+  ),
+}));
+
+vi.mock("./language-detector-api-demo", () => ({
+  LanguageDetectorApiDemo: ({
+    conversationId,
+  }: {
+    conversationId: string;
+  }) => <div>language-detector:{conversationId}</div>,
+}));
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -86,6 +112,32 @@ describe("ExistingChatSession", () => {
 
     await waitFor(() => {
       expect(screen.getByText("writer:c3")).toBeInTheDocument();
+    });
+  });
+
+  it("routes translator apiHint to the Translator demo", async () => {
+    useAuth.mockReturnValue({ user: { id: "u1" } });
+    getConversation.mockResolvedValue(null);
+
+    render(<ExistingChatSession conversationId="c4" apiHint="translator" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("translator:c4")).toBeInTheDocument();
+    });
+  });
+
+  it.each([
+    ["rewriter", "rewriter:c5"],
+    ["proofreader", "proofreader:c5"],
+    ["language-detector", "language-detector:c5"],
+  ] as const)("routes %s apiHint to its demo", async (apiHint, label) => {
+    useAuth.mockReturnValue({ user: { id: "u1" } });
+    getConversation.mockResolvedValue(null);
+
+    render(<ExistingChatSession conversationId="c5" apiHint={apiHint} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(label)).toBeInTheDocument();
     });
   });
 });

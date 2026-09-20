@@ -136,33 +136,139 @@ interface Writer {
   create(options?: WriterCreateOptions): Promise<WriterSession>;
 }
 
+type RewriterTone = "more-formal" | "as-is" | "more-casual";
+type RewriterFormat = "as-is" | "markdown" | "plain-text";
+type RewriterLength = "shorter" | "as-is" | "longer";
+
+interface RewriterCreateOptions {
+  sharedContext?: string;
+  tone?: RewriterTone;
+  format?: RewriterFormat;
+  length?: RewriterLength;
+  expectedInputLanguages?: string[];
+  expectedContextLanguages?: string[];
+  outputLanguage?: string;
+  signal?: AbortSignal;
+  monitor?: (monitor: EventTarget) => void;
+}
+
+interface RewriterRewriteOptions {
+  context?: string;
+  tone?: RewriterTone;
+  signal?: AbortSignal;
+}
+
+interface RewriterSession {
+  rewrite(input: string, options?: RewriterRewriteOptions): Promise<string>;
+  rewriteStreaming(
+    input: string,
+    options?: RewriterRewriteOptions,
+  ): AsyncIterable<string>;
+  destroy(): void;
+}
+
 interface Rewriter {
   availability(
-    options?: LanguageAwareAvailabilityOptions,
+    options?: LanguageAwareAvailabilityOptions &
+      Pick<
+        RewriterCreateOptions,
+        "tone" | "format" | "length" | "expectedInputLanguages" | "outputLanguage"
+      >,
   ): Promise<ChromeAiAvailability | null>;
+  create(options?: RewriterCreateOptions): Promise<RewriterSession>;
+}
+
+interface ProofreaderCreateOptions {
+  expectedInputLanguages?: string[];
+  signal?: AbortSignal;
+  monitor?: (monitor: EventTarget) => void;
+}
+
+interface ProofreaderProofreadOptions {
+  signal?: AbortSignal;
+}
+
+interface ProofreadCorrection {
+  startIndex: number;
+  endIndex: number;
+  type?: string;
+  explanation?: string;
+}
+
+interface ProofreadResult {
+  correctedInput: string;
+  corrections: ProofreadCorrection[];
+}
+
+interface ProofreaderSession {
+  proofread(
+    input: string,
+    options?: ProofreaderProofreadOptions,
+  ): Promise<ProofreadResult>;
+  destroy(): void;
 }
 
 interface Proofreader {
   availability(
     options?: LanguageAwareAvailabilityOptions,
   ): Promise<ChromeAiAvailability | null>;
+  create(options?: ProofreaderCreateOptions): Promise<ProofreaderSession>;
 }
 
-interface TranslatorAvailabilityOptions {
+interface TranslatorCreateOptions {
   sourceLanguage: string;
   targetLanguage: string;
+  signal?: AbortSignal;
+  monitor?: (monitor: EventTarget) => void;
+}
+
+interface TranslatorTranslateOptions {
+  signal?: AbortSignal;
+}
+
+interface TranslatorSession {
+  translate(
+    input: string,
+    options?: TranslatorTranslateOptions,
+  ): Promise<string>;
+  translateStreaming(
+    input: string,
+    options?: TranslatorTranslateOptions,
+  ): AsyncIterable<string>;
+  destroy(): void;
+  readonly sourceLanguage: string;
+  readonly targetLanguage: string;
 }
 
 interface Translator {
   availability(
-    options: TranslatorAvailabilityOptions,
+    options: Pick<TranslatorCreateOptions, "sourceLanguage" | "targetLanguage">,
   ): Promise<ChromeAiAvailability | null>;
+  create(options: TranslatorCreateOptions): Promise<TranslatorSession>;
+}
+
+interface LanguageDetectorCreateOptions {
+  signal?: AbortSignal;
+  monitor?: (monitor: EventTarget) => void;
+}
+
+interface LanguageDetectionResult {
+  detectedLanguage: string;
+  confidence: number;
+}
+
+interface LanguageDetectorSession {
+  detect(input: string): Promise<LanguageDetectionResult[]>;
+  destroy(): void;
 }
 
 interface LanguageDetector {
   availability(
     options?: LanguageAwareAvailabilityOptions,
   ): Promise<ChromeAiAvailability | null>;
+  create(
+    options?: LanguageDetectorCreateOptions,
+  ): Promise<LanguageDetectorSession>;
 }
 
 declare const LanguageModel: LanguageModel;

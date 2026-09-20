@@ -1,4 +1,21 @@
-export type ChatApiId = "prompt" | "summarizer" | "writer";
+export type ChatApiId =
+  | "prompt"
+  | "summarizer"
+  | "writer"
+  | "rewriter"
+  | "proofreader"
+  | "translator"
+  | "language-detector";
+
+const CHAT_API_IDS = new Set<ChatApiId>([
+  "prompt",
+  "summarizer",
+  "writer",
+  "rewriter",
+  "proofreader",
+  "translator",
+  "language-detector",
+]);
 
 export type ConversationMessage = {
   role: "user" | "assistant";
@@ -282,5 +299,5 @@ export async function upsertConversation(input: {
 }
 
 export function isChatApiId(value: string | undefined | null): value is ChatApiId {
-  return value === "prompt" || value === "summarizer" || value === "writer";
+  return value != null && CHAT_API_IDS.has(value as ChatApiId);
 }

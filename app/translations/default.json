@@ -110,22 +110,26 @@
       {
         "id": "rewriter",
         "name": "Rewriter API",
-        "description": "Rewriting existing text"
+        "description": "Rewriting existing text",
+        "href": "/chat?api=rewriter"
       },
       {
         "id": "proofreader",
         "name": "Proofreader API",
-        "description": "Grammar and spelling fixes"
+        "description": "Grammar and spelling fixes",
+        "href": "/chat?api=proofreader"
       },
       {
         "id": "translator",
         "name": "Translator API",
-        "description": "Translation"
+        "description": "Translation",
+        "href": "/chat?api=translator"
       },
       {
         "id": "language-detector",
         "name": "Language Detector",
-        "description": "Detecting language"
+        "description": "Detecting language",
+        "href": "/chat?api=language-detector"
       }
     ]
   },
