@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   useState,
@@ -11,6 +10,7 @@ import {
 
 import { AuthError } from "../lib/auth/types";
 import { safeNextPath } from "../lib/auth/safe-next-path";
+import { LinkButton } from "./link-button";
 
 const fieldClassName =
   "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-800";
@@ -109,12 +109,12 @@ export function AuthForm({
 
       <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
         {footerPrompt}{" "}
-        <Link
+        <LinkButton
           href={footerHrefWithNext}
           className="font-medium text-zinc-900 underline-offset-2 hover:underline dark:text-zinc-50"
         >
           {footerLink}
-        </Link>
+        </LinkButton>
       </p>
     </form>
   );

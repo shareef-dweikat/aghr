@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import defaultTranslations from "../translations/default.json";
+
+import { LinkButton } from "./link-button";
 
 import {
   checkApiAvailability,
@@ -106,12 +107,12 @@ export function HomeApiList({
         return (
           <li key={api.id}>
             {api.href ? (
-              <Link
+              <LinkButton
                 href={api.href}
                 className={`${cardClassName} transition hover:border-zinc-400 dark:hover:border-zinc-600`}
               >
                 {body}
-              </Link>
+              </LinkButton>
             ) : (
               <div className={cardClassName}>{body}</div>
             )}

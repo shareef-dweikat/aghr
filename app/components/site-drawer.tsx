@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 
 import { useAuth } from "../lib/auth/auth-context";
+import { LinkButton } from "./link-button";
 import {
   listConversations,
   type Conversation,
@@ -102,13 +102,13 @@ function ConversationLinks({
   return conversations.map((conversation) => {
     const href = `/chat/${conversation.id}`;
     return (
-      <Link
+      <LinkButton
         key={conversation.id}
         href={href}
         className={`${linkClassName(pathname === href)} truncate`}
       >
         {conversation.title}
-      </Link>
+      </LinkButton>
     );
   });
 }
@@ -148,6 +148,7 @@ function DrawerChrome({
   );
   const menuIcon = open ? <CloseIcon /> : <MenuIcon />;
   const menuLabel = open ? nav.closeMenu : nav.openMenu;
+  const isHome = pathname === "/";
 
   return (
     <>
@@ -174,13 +175,18 @@ function DrawerChrome({
         className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-zinc-200 bg-white pt-20 pb-4 transition-transform duration-200 ease-out dark:border-zinc-800 dark:bg-zinc-950 ${panelClassName}`}
       >
         <nav className="flex min-h-0 flex-1 flex-col px-4" aria-label={nav.menu}>
-          <Link
+          <LinkButton
             href="/"
-            className={`${linkClassName(pathname === "/")} mb-3 flex items-center gap-2`}
+            disabled={isHome}
+            className={
+              isHome
+                ? "mb-3 flex cursor-default items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 dark:text-zinc-500"
+                : `${linkClassName(false)} mb-3 flex items-center gap-2`
+            }
           >
             <PlusIcon />
             {nav.new}
-          </Link>
+          </LinkButton>
 
           <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
             <ConversationLinks
