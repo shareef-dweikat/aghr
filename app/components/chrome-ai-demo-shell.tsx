@@ -116,6 +116,8 @@ async function beginChromeAiRun(
 
   if (DOWNLOAD_AVAILABILITY.has(availability)) {
     setStatus("downloading");
+  } else {
+    setStatus("streaming");
   }
 
   return true;

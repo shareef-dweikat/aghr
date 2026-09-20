@@ -31,15 +31,17 @@ const secondaryButtonClassName =
 export function ChatMessageList({
   messages,
   emptyLabel,
+  pendingLabel,
 }: {
   messages: ChatMessage[];
   emptyLabel: string;
+  pendingLabel?: string;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages]);
+  }, [messages, pendingLabel]);
 
   if (messages.length === 0) {
     return (
@@ -53,6 +55,18 @@ export function ChatMessageList({
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-6 sm:px-6">
       {messages.map((message, index) => {
         const isUser = message.role === "user";
+        const isPendingAssistant =
+          !isUser &&
+          !message.content &&
+          index === messages.length - 1 &&
+          Boolean(pendingLabel);
+        const body = message.content
+          ? message.content
+          : isUser
+            ? ""
+            : isPendingAssistant
+              ? pendingLabel
+              : "…";
 
         return (
           <div
@@ -64,9 +78,9 @@ export function ChatMessageList({
                 isUser
                   ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                   : "bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-              }`}
+              } ${isPendingAssistant ? "text-zinc-500 dark:text-zinc-400" : ""}`}
             >
-              {message.content || (isUser ? "" : "…")}
+              {body}
             </div>
           </div>
         );
@@ -98,6 +112,57 @@ export function ChatStatusBanner({
     >
       {message}
     </p>
+  );
+}
+
+export function ChatScreen({
+  messages,
+  emptyLabel,
+  statusMessage,
+  isWarningStatus,
+  children,
+}: {
+  messages: ChatMessage[];
+  emptyLabel: string;
+  statusMessage: string;
+  isWarningStatus: boolean;
+  children: ReactNode;
+}) {
+  const isEmpty = messages.length === 0;
+  const pendingLabel = !isWarningStatus ? statusMessage : undefined;
+  const showBanner = Boolean(statusMessage) && (isEmpty || isWarningStatus);
+
+  return (
+    <div
+      className={`flex min-h-0 flex-1 flex-col ${
+        isEmpty ? "justify-center" : ""
+      }`}
+    >
+      {isEmpty ? (
+        <p className="px-6 pb-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          {emptyLabel}
+        </p>
+      ) : (
+        <ChatMessageList
+          messages={messages}
+          emptyLabel={emptyLabel}
+          pendingLabel={pendingLabel}
+        />
+      )}
+
+      {showBanner ? (
+        <div
+          className={`px-4 sm:px-6 ${isEmpty ? "mx-auto mb-2 w-3/4 px-0" : "pt-2"}`}
+        >
+          <ChatStatusBanner
+            message={statusMessage}
+            isWarning={isWarningStatus}
+          />
+        </div>
+      ) : null}
+
+      {children}
+    </div>
   );
 }
 
@@ -141,10 +206,26 @@ export function ChatComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-end gap-2 border-t border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-black sm:px-6"
+      className="bg-zinc-50 px-4 py-3 dark:bg-black sm:px-6"
     >
-      {accessory ? (
-        <div className={fieldShellClassName}>
+      <div className="mx-auto flex w-3/4 items-end gap-2">
+        {accessory ? (
+          <div className={fieldShellClassName}>
+            <textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isRunning}
+              rows={1}
+              placeholder={placeholder}
+              aria-label={placeholder}
+              className={textareaInFieldClassName}
+            />
+            <div className="flex shrink-0 items-center self-end pb-1 pr-1">
+              {accessory}
+            </div>
+          </div>
+        ) : (
           <textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -153,37 +234,23 @@ export function ChatComposer({
             rows={1}
             placeholder={placeholder}
             aria-label={placeholder}
-            className={textareaInFieldClassName}
+            className={textareaClassName}
           />
-          <div className="flex shrink-0 items-center self-end pb-1 pr-1">
-            {accessory}
-          </div>
-        </div>
-      ) : (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={isRunning}
-          rows={1}
-          placeholder={placeholder}
-          aria-label={placeholder}
-          className={textareaClassName}
-        />
-      )}
-      {isRunning ? (
-        <button type="button" onClick={onStop} className={secondaryButtonClassName}>
-          Stop
-        </button>
-      ) : (
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={primaryButtonClassName}
-        >
-          {submitLabel}
-        </button>
-      )}
+        )}
+        {isRunning ? (
+          <button type="button" onClick={onStop} className={secondaryButtonClassName}>
+            Stop
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className={primaryButtonClassName}
+          >
+            {submitLabel}
+          </button>
+        )}
+      </div>
     </form>
   );
 }

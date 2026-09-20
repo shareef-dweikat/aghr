@@ -6,11 +6,7 @@ import {
   useChromeAiChatRun,
   type ChromeAiStatusCopy,
 } from "./chrome-ai-demo-shell";
-import {
-  ChatComposer,
-  ChatMessageList,
-  ChatStatusBanner,
-} from "./chat-thread";
+import { ChatComposer, ChatScreen } from "./chat-thread";
 import { useChatConversationRoute } from "./use-chat-conversation-route";
 
 const TYPE_OPTIONS: SummarizerType[] = [
@@ -229,19 +225,12 @@ export function SummarizerApiDemo({
   }, [ensureConversationRoute, format, input, length, run, type]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <ChatMessageList
-        messages={messages}
-        emptyLabel="Paste text to summarize"
-      />
-
-      <div className="px-4 pt-2 sm:px-6">
-        <ChatStatusBanner
-          message={statusMessage}
-          isWarning={isWarningStatus}
-        />
-      </div>
-
+    <ChatScreen
+      messages={messages}
+      emptyLabel="Paste text to summarize"
+      statusMessage={statusMessage}
+      isWarningStatus={isWarningStatus}
+    >
       <ChatComposer
         value={input}
         onChange={setInput}
@@ -263,6 +252,6 @@ export function SummarizerApiDemo({
           />
         }
       />
-    </div>
+    </ChatScreen>
   );
 }

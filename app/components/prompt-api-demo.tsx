@@ -6,11 +6,7 @@ import {
   useChromeAiChatRun,
   type ChromeAiStatusCopy,
 } from "./chrome-ai-demo-shell";
-import {
-  ChatComposer,
-  ChatMessageList,
-  ChatStatusBanner,
-} from "./chat-thread";
+import { ChatComposer, ChatScreen } from "./chat-thread";
 import { useChatConversationRoute } from "./use-chat-conversation-route";
 
 const STATUS_COPY: ChromeAiStatusCopy = {
@@ -69,19 +65,12 @@ export function PromptApiDemo({ conversationId }: { conversationId: string }) {
   }, [ensureConversationRoute, input, run]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <ChatMessageList
-        messages={messages}
-        emptyLabel="Send a message to start"
-      />
-
-      <div className="flex flex-col gap-2 px-4 pt-2 sm:px-6">
-        <ChatStatusBanner
-          message={statusMessage}
-          isWarning={isWarningStatus}
-        />
-      </div>
-
+    <ChatScreen
+      messages={messages}
+      emptyLabel="Send a message to start"
+      statusMessage={statusMessage}
+      isWarningStatus={isWarningStatus}
+    >
       <ChatComposer
         value={input}
         onChange={setInput}
@@ -91,6 +80,6 @@ export function PromptApiDemo({ conversationId }: { conversationId: string }) {
         canSubmit={Boolean(input.trim())}
         placeholder="Message"
       />
-    </div>
+    </ChatScreen>
   );
 }

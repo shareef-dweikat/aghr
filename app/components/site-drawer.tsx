@@ -55,6 +55,10 @@ export function SiteDrawer() {
     };
   }, [open]);
 
+  if (pathname === "/login" || pathname === "/signup") {
+    return null;
+  }
+
   return (
     <>
       <button
