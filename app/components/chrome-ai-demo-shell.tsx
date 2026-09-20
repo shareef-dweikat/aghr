@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 
+import { useAuth } from "../lib/auth/auth-context";
 import { checkApiAvailability } from "../lib/chrome-ai";
 import { getConversation } from "../lib/conversations";
 import type { ChatMessage } from "./chat-thread";
@@ -268,6 +269,7 @@ export function useChromeAiChatRun({
   const [isRunning, setIsRunning] = useState(false);
   const sessionRef = useRef<DestroyableSession | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     return () => {
@@ -280,18 +282,22 @@ export function useChromeAiChatRun({
 
   useEffect(() => {
     let cancelled = false;
-    setMessages([]);
 
-    void getConversation(conversationId).then((existing) => {
-      if (!cancelled && existing?.messages) {
-        setMessages(existing.messages);
+    if (!user) {
+      return;
+    }
+
+    void getConversation(user.id, conversationId).then((existing) => {
+      if (cancelled) {
+        return;
       }
+      setMessages(existing?.messages ?? []);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [conversationId]);
+  }, [conversationId, user]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();

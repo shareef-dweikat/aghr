@@ -1,3 +1,8 @@
+"use client";
+
+import { Suspense } from "react";
+
+import { useAuth } from "../lib/auth/auth-context";
 import { AuthField, AuthForm } from "./auth-form";
 
 type SignupCopy = {
@@ -11,13 +16,22 @@ type SignupCopy = {
   loginLink: string;
 };
 
-export function SignupForm({ copy }: { copy: SignupCopy }) {
+function SignupFormInner({ copy }: { copy: SignupCopy }) {
+  const { signUp } = useAuth();
+
   return (
     <AuthForm
       copy={copy}
       footerPrompt={copy.hasAccount}
       footerHref="/login"
       footerLink={copy.loginLink}
+      onSubmit={async (formData) => {
+        await signUp({
+          name: String(formData.get("name") ?? ""),
+          email: String(formData.get("email") ?? ""),
+          password: String(formData.get("password") ?? ""),
+        });
+      }}
     >
       <AuthField
         label={copy.name}
@@ -42,5 +56,13 @@ export function SignupForm({ copy }: { copy: SignupCopy }) {
         minLength={8}
       />
     </AuthForm>
+  );
+}
+
+export function SignupForm({ copy }: { copy: SignupCopy }) {
+  return (
+    <Suspense fallback={null}>
+      <SignupFormInner copy={copy} />
+    </Suspense>
   );
 }

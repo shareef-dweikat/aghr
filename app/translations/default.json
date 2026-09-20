@@ -6,7 +6,8 @@
     "new": "New",
     "noConversations": "No conversations to show",
     "login": "Log in",
-    "signup": "Sign up"
+    "signup": "Sign up",
+    "logout": "Log out"
   },
   "home": {
     "title": "Chrome Built-in AI",

@@ -7,6 +7,7 @@ export type ConversationMessage = {
 
 export type Conversation = {
   id: string;
+  userId: string;
   apiId: ChatApiId;
   title: string;
   updatedAt: number;
@@ -14,7 +15,7 @@ export type Conversation = {
 };
 
 const DB_NAME = "aghr";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "conversations";
 const LEGACY_STORAGE_KEY = "aghr:conversations";
 
@@ -33,11 +34,20 @@ function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      const oldVersion = event.oldVersion;
+      let store: IDBObjectStore;
+
+      if (oldVersion < 1 || !db.objectStoreNames.contains(STORE_NAME)) {
+        store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
         store.createIndex("updatedAt", "updatedAt", { unique: false });
+      } else {
+        store = request.transaction!.objectStore(STORE_NAME);
+      }
+
+      if (oldVersion < 2 && !store.indexNames.contains("userId")) {
+        store.createIndex("userId", "userId", { unique: false });
       }
     };
 
@@ -108,8 +118,10 @@ function toMigratedConversation(item: LegacyConversation): Conversation | null {
     return null;
   }
 
+  // Legacy rows have no owner; leave them unreadable to signed-in users.
   return {
     id: item.id,
+    userId: "",
     apiId: item.apiId,
     title: conversationTitle(item.title),
     updatedAt: conversationUpdatedAt(item.updatedAt),
@@ -183,29 +195,36 @@ async function withDb<T>(fn: (db: IDBDatabase) => Promise<T>): Promise<T> {
   }
 }
 
-async function readAllConversations(db: IDBDatabase): Promise<Conversation[]> {
+async function readConversationsForUser(
+  db: IDBDatabase,
+  userId: string,
+): Promise<Conversation[]> {
   const tx = db.transaction(STORE_NAME, "readonly");
   const store = tx.objectStore(STORE_NAME);
-  const records = await requestToPromise(store.getAll());
+  const index = store.index("userId");
+  const records = await requestToPromise(index.getAll(userId));
   await transactionDone(tx);
   return records as Conversation[];
 }
 
-export async function listConversations(): Promise<Conversation[]> {
-  if (!canUseStorage()) {
+export async function listConversations(userId: string): Promise<Conversation[]> {
+  if (!userId || !canUseStorage()) {
     return [];
   }
 
   try {
-    const records = await withDb(readAllConversations);
+    const records = await withDb((db) => readConversationsForUser(db, userId));
     return records.sort((a, b) => b.updatedAt - a.updatedAt);
   } catch {
     return [];
   }
 }
 
-export async function getConversation(id: string): Promise<Conversation | null> {
-  if (!canUseStorage()) {
+export async function getConversation(
+  userId: string,
+  id: string,
+): Promise<Conversation | null> {
+  if (!userId || !canUseStorage()) {
     return null;
   }
 
@@ -215,7 +234,11 @@ export async function getConversation(id: string): Promise<Conversation | null> 
       const store = tx.objectStore(STORE_NAME);
       const record = await requestToPromise(store.get(id));
       await transactionDone(tx);
-      return (record as Conversation | undefined) ?? null;
+      const conversation = (record as Conversation | undefined) ?? null;
+      if (!conversation || conversation.userId !== userId) {
+        return null;
+      }
+      return conversation;
     });
   } catch {
     return null;
@@ -224,12 +247,14 @@ export async function getConversation(id: string): Promise<Conversation | null> 
 
 export async function upsertConversation(input: {
   id: string;
+  userId: string;
   apiId: ChatApiId;
   title: string;
   messages: ConversationMessage[];
 }): Promise<Conversation> {
   const next: Conversation = {
     id: input.id,
+    userId: input.userId,
     apiId: input.apiId,
     title: input.title.trim() || "New chat",
     updatedAt: Date.now(),
@@ -243,6 +268,12 @@ export async function upsertConversation(input: {
   await withDb(async (db) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
+    const existing = (await requestToPromise(
+      store.get(input.id),
+    )) as Conversation | undefined;
+    if (existing && existing.userId !== input.userId) {
+      throw new Error("Conversation belongs to another user");
+    }
     store.put(next);
     await transactionDone(tx);
   });

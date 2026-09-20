@@ -1,19 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 
+import { useAuth } from "../lib/auth/auth-context";
 import {
   listConversations,
   type Conversation,
 } from "../lib/conversations";
 import defaultTranslations from "../translations/default.json";
-
-const accountLinks = [
-  { href: "/login", key: "login" as const },
-  { href: "/signup", key: "signup" as const },
-];
 
 const AUTH_PATHS = new Set(["/login", "/signup"]);
 
@@ -33,16 +29,16 @@ function useCloseOnNavigate(
   }, [pathname, setOpen]);
 }
 
-function useConversationsWhenOpen(open: boolean) {
+function useConversationsWhenOpen(open: boolean, userId: string | undefined) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || !userId) {
       return;
     }
 
     let cancelled = false;
-    void listConversations().then((next) => {
+    void listConversations(userId).then((next) => {
       if (cancelled) {
         return;
       }
@@ -52,7 +48,11 @@ function useConversationsWhenOpen(open: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, userId]);
+
+  if (!open || !userId) {
+    return [];
+  }
 
   return conversations;
 }
@@ -125,11 +125,15 @@ function DrawerChrome({
   setOpen,
   pathname,
   conversations,
+  displayName,
+  onLogout,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   pathname: string;
   conversations: Conversation[];
+  displayName: string;
+  onLogout: () => void;
 }) {
   const { nav } = defaultTranslations;
   const panelClassName = drawerMotionClass(
@@ -187,15 +191,16 @@ function DrawerChrome({
           </div>
 
           <div className="mt-4 flex flex-col gap-1 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-            {accountLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={linkClassName(pathname === link.href)}
-              >
-                {nav[link.key]}
-              </Link>
-            ))}
+            <p className="truncate px-3 py-1 text-sm text-zinc-600 dark:text-zinc-400">
+              {displayName}
+            </p>
+            <button
+              type="button"
+              onClick={onLogout}
+              className={`${linkClassName(false)} w-full text-left`}
+            >
+              {nav.logout}
+            </button>
           </div>
         </nav>
       </aside>
@@ -206,14 +211,31 @@ function DrawerChrome({
 function useSiteDrawerState() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const conversations = useConversationsWhenOpen(open);
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+  const conversations = useConversationsWhenOpen(open, user?.id);
   useCloseOnNavigate(pathname, setOpen);
   useDrawerLock(open, setOpen);
-  return { open, setOpen, pathname, conversations };
+
+  async function onLogout() {
+    setOpen(false);
+    await signOut();
+    router.replace("/login");
+  }
+
+  return {
+    open,
+    setOpen,
+    pathname,
+    conversations,
+    displayName: user?.displayName ?? user?.email ?? "",
+    onLogout,
+  };
 }
 
 export function SiteDrawer() {
-  const { open, setOpen, pathname, conversations } = useSiteDrawerState();
+  const { open, setOpen, pathname, conversations, displayName, onLogout } =
+    useSiteDrawerState();
 
   if (AUTH_PATHS.has(pathname)) {
     return null;
@@ -225,6 +247,8 @@ export function SiteDrawer() {
       setOpen={setOpen}
       pathname={pathname}
       conversations={conversations}
+      displayName={displayName}
+      onLogout={onLogout}
     />
   );
 }

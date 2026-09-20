@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 
+import { useAuth } from "../lib/auth/auth-context";
 import {
   upsertConversation,
   type ChatApiId,
@@ -15,23 +16,28 @@ export function useChatConversationRoute({
   apiId: ChatApiId;
   conversationId: string;
 }) {
-  const idRef = useRef(conversationId);
-  idRef.current = conversationId;
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const ensureConversationRoute = useCallback(
     (title: string, messages: ConversationMessage[]) => {
+      if (!userId) {
+        return;
+      }
+
       void upsertConversation({
-        id: idRef.current,
+        id: conversationId,
+        userId,
         apiId,
         title,
         messages,
       });
 
       if (window.location.search) {
-        window.history.replaceState(null, "", `/chat/${idRef.current}`);
+        window.history.replaceState(null, "", `/chat/${conversationId}`);
       }
     },
-    [apiId],
+    [apiId, conversationId, userId],
   );
 
   return { ensureConversationRoute };

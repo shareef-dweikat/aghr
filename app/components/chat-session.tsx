@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useAuth } from "../lib/auth/auth-context";
 import {
   getConversation,
   type ChatApiId,
@@ -44,22 +45,37 @@ export function ExistingChatSession({
   conversationId: string;
   apiHint?: ChatApiId;
 }) {
-  const [apiId, setApiId] = useState<ChatApiId | null>(null);
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [resolved, setResolved] = useState<{
+    userId: string;
+    apiId: ChatApiId;
+  } | null>(null);
 
   useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
     let cancelled = false;
 
-    void getConversation(conversationId).then((existing) => {
+    void getConversation(userId, conversationId).then((existing) => {
       if (cancelled) {
         return;
       }
-      setApiId(resolveApiId(existing, apiHint));
+      setResolved({
+        userId,
+        apiId: resolveApiId(existing, apiHint),
+      });
     });
 
     return () => {
       cancelled = true;
     };
-  }, [apiHint, conversationId]);
+  }, [apiHint, conversationId, userId]);
+
+  const apiId =
+    resolved && resolved.userId === userId ? resolved.apiId : null;
 
   if (!apiId) {
     return null;
