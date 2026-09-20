@@ -37,7 +37,11 @@ export function PromptApiDemo({ conversationId }: { conversationId: string }) {
     run,
     statusMessage,
     isWarningStatus,
-  } = useChromeAiChatRun({ apiId: "prompt", statusCopy: STATUS_COPY });
+  } = useChromeAiChatRun({
+    apiId: "prompt",
+    conversationId,
+    statusCopy: STATUS_COPY,
+  });
 
   const handleSend = useCallback(() => {
     const title = input.trim();
@@ -57,8 +61,8 @@ export function PromptApiDemo({ conversationId }: { conversationId: string }) {
         });
       },
       {
-        onComplete() {
-          ensureConversationRoute(title);
+        onComplete(nextMessages) {
+          ensureConversationRoute(title, nextMessages);
         },
       },
     );

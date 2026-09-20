@@ -5,6 +5,7 @@ import { useCallback, useRef } from "react";
 import {
   upsertConversation,
   type ChatApiId,
+  type ConversationMessage,
 } from "../lib/conversations";
 
 export function useChatConversationRoute({
@@ -18,11 +19,12 @@ export function useChatConversationRoute({
   idRef.current = conversationId;
 
   const ensureConversationRoute = useCallback(
-    (title: string) => {
-      upsertConversation({
+    (title: string, messages: ConversationMessage[]) => {
+      void upsertConversation({
         id: idRef.current,
         apiId,
         title,
+        messages,
       });
 
       if (window.location.search) {

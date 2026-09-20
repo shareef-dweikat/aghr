@@ -193,7 +193,11 @@ export function SummarizerApiDemo({
     run,
     statusMessage,
     isWarningStatus,
-  } = useChromeAiChatRun({ apiId: "summarizer", statusCopy: STATUS_COPY });
+  } = useChromeAiChatRun({
+    apiId: "summarizer",
+    conversationId,
+    statusCopy: STATUS_COPY,
+  });
 
   const handleSummarize = useCallback(() => {
     const title = input.trim();
@@ -217,8 +221,8 @@ export function SummarizerApiDemo({
         });
       },
       {
-        onComplete() {
-          ensureConversationRoute(title);
+        onComplete(nextMessages) {
+          ensureConversationRoute(title, nextMessages);
         },
       },
     );

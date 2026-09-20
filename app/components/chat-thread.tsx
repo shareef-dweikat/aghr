@@ -28,6 +28,59 @@ const primaryButtonClassName =
 const secondaryButtonClassName =
   "shrink-0 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800";
 
+function pendingAssistantBody(pendingLabel?: string): string {
+  if (pendingLabel) {
+    return pendingLabel;
+  }
+  return "…";
+}
+
+function messageBody(
+  message: ChatMessage,
+  isPendingAssistant: boolean,
+  pendingLabel?: string,
+): string {
+  if (message.content) {
+    return message.content;
+  }
+  if (message.role === "user") {
+    return "";
+  }
+  if (!isPendingAssistant) {
+    return "…";
+  }
+  return pendingAssistantBody(pendingLabel);
+}
+
+function ChatBubble({
+  message,
+  isPendingAssistant,
+  pendingLabel,
+}: {
+  message: ChatMessage;
+  isPendingAssistant: boolean;
+  pendingLabel?: string;
+}) {
+  const isUser = message.role === "user";
+  const alignClass = isUser ? "justify-end" : "justify-start";
+  const bubbleClass = isUser
+    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+    : "bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100";
+  const pendingClass = isPendingAssistant
+    ? "text-zinc-500 dark:text-zinc-400"
+    : "";
+
+  return (
+    <div className={`flex ${alignClass}`}>
+      <div
+        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${bubbleClass} ${pendingClass}`}
+      >
+        {messageBody(message, isPendingAssistant, pendingLabel)}
+      </div>
+    </div>
+  );
+}
+
 function ChatMessageList({
   messages,
   emptyLabel,
@@ -51,38 +104,24 @@ function ChatMessageList({
     );
   }
 
+  const lastIndex = messages.length - 1;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-6 sm:px-6">
       {messages.map((message, index) => {
-        const isUser = message.role === "user";
         const isPendingAssistant =
-          !isUser &&
+          message.role === "assistant" &&
           !message.content &&
-          index === messages.length - 1 &&
+          index === lastIndex &&
           Boolean(pendingLabel);
-        const body = message.content
-          ? message.content
-          : isUser
-            ? ""
-            : isPendingAssistant
-              ? pendingLabel
-              : "…";
 
         return (
-          <div
+          <ChatBubble
             key={`${message.role}-${index}`}
-            className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                isUser
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-              } ${isPendingAssistant ? "text-zinc-500 dark:text-zinc-400" : ""}`}
-            >
-              {body}
-            </div>
-          </div>
+            message={message}
+            isPendingAssistant={isPendingAssistant}
+            pendingLabel={pendingLabel}
+          />
         );
       })}
       <div ref={bottomRef} />
@@ -115,6 +154,92 @@ function ChatStatusBanner({
   );
 }
 
+function ChatThreadBody({
+  isEmpty,
+  emptyLabel,
+  messages,
+  pendingLabel,
+}: {
+  isEmpty: boolean;
+  emptyLabel: string;
+  messages: ChatMessage[];
+  pendingLabel?: string;
+}) {
+  if (isEmpty) {
+    return (
+      <p className="px-6 pb-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+        {emptyLabel}
+      </p>
+    );
+  }
+
+  return (
+    <ChatMessageList
+      messages={messages}
+      emptyLabel={emptyLabel}
+      pendingLabel={pendingLabel}
+    />
+  );
+}
+
+function bannerWrapClass(isEmpty: boolean): string {
+  if (isEmpty) {
+    return "mx-auto mb-2 w-3/4 px-0";
+  }
+  return "px-4 pt-2 sm:px-6";
+}
+
+function shouldShowStatusBanner(
+  statusMessage: string,
+  isEmpty: boolean,
+  isWarningStatus: boolean,
+): boolean {
+  if (!statusMessage) {
+    return false;
+  }
+  if (isEmpty) {
+    return true;
+  }
+  return isWarningStatus;
+}
+
+function StatusBannerSlot({
+  statusMessage,
+  isWarningStatus,
+  isEmpty,
+}: {
+  statusMessage: string;
+  isWarningStatus: boolean;
+  isEmpty: boolean;
+}) {
+  if (!shouldShowStatusBanner(statusMessage, isEmpty, isWarningStatus)) {
+    return null;
+  }
+
+  return (
+    <div className={bannerWrapClass(isEmpty)}>
+      <ChatStatusBanner message={statusMessage} isWarning={isWarningStatus} />
+    </div>
+  );
+}
+
+function chatLayoutClass(isEmpty: boolean): string {
+  if (isEmpty) {
+    return "flex min-h-0 flex-1 flex-col justify-center";
+  }
+  return "flex min-h-0 flex-1 flex-col";
+}
+
+function pendingStatusLabel(
+  isWarningStatus: boolean,
+  statusMessage: string,
+): string | undefined {
+  if (isWarningStatus) {
+    return undefined;
+  }
+  return statusMessage;
+}
+
 export function ChatScreen({
   messages,
   emptyLabel,
@@ -129,41 +254,34 @@ export function ChatScreen({
   children: ReactNode;
 }) {
   const isEmpty = messages.length === 0;
-  const pendingLabel = !isWarningStatus ? statusMessage : undefined;
-  const showBanner = Boolean(statusMessage) && (isEmpty || isWarningStatus);
 
   return (
-    <div
-      className={`flex min-h-0 flex-1 flex-col ${
-        isEmpty ? "justify-center" : ""
-      }`}
-    >
-      {isEmpty ? (
-        <p className="px-6 pb-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
-          {emptyLabel}
-        </p>
-      ) : (
-        <ChatMessageList
-          messages={messages}
-          emptyLabel={emptyLabel}
-          pendingLabel={pendingLabel}
-        />
-      )}
-
-      {showBanner ? (
-        <div
-          className={`px-4 sm:px-6 ${isEmpty ? "mx-auto mb-2 w-3/4 px-0" : "pt-2"}`}
-        >
-          <ChatStatusBanner
-            message={statusMessage}
-            isWarning={isWarningStatus}
-          />
-        </div>
-      ) : null}
-
+    <div className={chatLayoutClass(isEmpty)}>
+      <ChatThreadBody
+        isEmpty={isEmpty}
+        emptyLabel={emptyLabel}
+        messages={messages}
+        pendingLabel={pendingStatusLabel(isWarningStatus, statusMessage)}
+      />
+      <StatusBannerSlot
+        statusMessage={statusMessage}
+        isWarningStatus={isWarningStatus}
+        isEmpty={isEmpty}
+      />
       {children}
     </div>
   );
+}
+
+function trySubmit(
+  isRunning: boolean,
+  canSubmit: boolean,
+  onSubmit: () => void,
+) {
+  if (isRunning || !canSubmit) {
+    return;
+  }
+  onSubmit();
 }
 
 export function ChatComposer({
@@ -189,19 +307,29 @@ export function ChatComposer({
 }) {
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!isRunning && canSubmit) {
-      onSubmit();
-    }
+    trySubmit(isRunning, canSubmit, onSubmit);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      if (!isRunning && canSubmit) {
-        onSubmit();
-      }
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
     }
+    event.preventDefault();
+    trySubmit(isRunning, canSubmit, onSubmit);
   }
+
+  const field = (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={handleKeyDown}
+      disabled={isRunning}
+      rows={1}
+      placeholder={placeholder}
+      aria-label={placeholder}
+      className={accessory ? textareaInFieldClassName : textareaClassName}
+    />
+  );
 
   return (
     <form
@@ -211,31 +339,13 @@ export function ChatComposer({
       <div className="mx-auto flex w-3/4 items-end gap-2">
         {accessory ? (
           <div className={fieldShellClassName}>
-            <textarea
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isRunning}
-              rows={1}
-              placeholder={placeholder}
-              aria-label={placeholder}
-              className={textareaInFieldClassName}
-            />
+            {field}
             <div className="flex shrink-0 items-center self-end pb-1 pr-1">
               {accessory}
             </div>
           </div>
         ) : (
-          <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isRunning}
-            rows={1}
-            placeholder={placeholder}
-            aria-label={placeholder}
-            className={textareaClassName}
-          />
+          field
         )}
         {isRunning ? (
           <button type="button" onClick={onStop} className={secondaryButtonClassName}>

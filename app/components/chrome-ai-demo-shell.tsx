@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { checkApiAvailability } from "../lib/chrome-ai";
+import { getConversation } from "../lib/conversations";
 import type { ChatMessage } from "./chat-thread";
 
 type ChromeAiDemoStatus =
@@ -207,7 +208,7 @@ async function runChromeAiChatTurn({
   apiId: string;
   text: string;
   execute: ChatTurnExecute;
-  onComplete?: () => void;
+  onComplete?: (messages: ChatMessage[]) => void;
   sessionRef: MutableRefObject<DestroyableSession | null>;
   abortRef: MutableRefObject<AbortController | null>;
   setStatus: (status: ChromeAiDemoStatus) => void;
@@ -215,12 +216,21 @@ async function runChromeAiChatTurn({
   setDownloadProgress: (value: number | null) => void;
   setMessages: MessageSetter;
 }): Promise<void> {
-  appendUserTurn(setMessages, text);
+  let snapshot: ChatMessage[] = [];
+  const trackMessages: MessageSetter = (update) => {
+    setMessages((current) => {
+      const next = typeof update === "function" ? update(current) : update;
+      snapshot = next;
+      return next;
+    });
+  };
+
+  appendUserTurn(trackMessages, text);
 
   try {
     const canContinue = await beginChromeAiRun(apiId, setStatus);
     if (!canContinue) {
-      dropLastTurn(setMessages);
+      dropLastTurn(trackMessages);
       return;
     }
 
@@ -233,9 +243,9 @@ async function runChromeAiChatTurn({
     );
 
     setStatus("streaming");
-    await consumeAssistantStream(stream, setMessages);
+    await consumeAssistantStream(stream, trackMessages);
     setStatus("done");
-    onComplete?.();
+    onComplete?.(snapshot);
   } catch (err) {
     applyChromeAiRunError(err, setStatus, setError);
   }
@@ -243,9 +253,11 @@ async function runChromeAiChatTurn({
 
 export function useChromeAiChatRun({
   apiId,
+  conversationId,
   statusCopy,
 }: {
   apiId: string;
+  conversationId: string;
   statusCopy: ChromeAiStatusCopy;
 }) {
   const [input, setInput] = useState("");
@@ -266,6 +278,21 @@ export function useChromeAiChatRun({
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    setMessages([]);
+
+    void getConversation(conversationId).then((existing) => {
+      if (!cancelled && existing?.messages) {
+        setMessages(existing.messages);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId]);
+
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
@@ -273,7 +300,10 @@ export function useChromeAiChatRun({
   }, []);
 
   const run = useCallback(
-    async (execute: ChatTurnExecute, options?: { onComplete?: () => void }) => {
+    async (
+      execute: ChatTurnExecute,
+      options?: { onComplete?: (messages: ChatMessage[]) => void },
+    ) => {
       const text = input.trim();
       if (!text || isRunning) {
         return;

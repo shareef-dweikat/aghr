@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 
 import {
   listConversations,
@@ -15,30 +15,56 @@ const accountLinks = [
   { href: "/signup", key: "signup" as const },
 ];
 
+const AUTH_PATHS = new Set(["/login", "/signup"]);
+
 function linkClassName(isActive: boolean) {
-  return `rounded-lg px-3 py-2 text-sm font-medium transition ${isActive
-      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
-    }`;
+  if (isActive) {
+    return "rounded-lg px-3 py-2 text-sm font-medium transition bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900";
+  }
+  return "rounded-lg px-3 py-2 text-sm font-medium transition text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900";
 }
 
-export function SiteDrawer() {
-  const [open, setOpen] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const pathname = usePathname();
-  const { nav } = defaultTranslations;
-
+function useCloseOnNavigate(
+  pathname: string,
+  setOpen: Dispatch<SetStateAction<boolean>>,
+) {
   useEffect(() => {
     setOpen(false);
-  }, [pathname]);
+  }, [pathname, setOpen]);
+}
 
+function useConversationsWhenOpen(open: boolean) {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    setConversations(listConversations());
+    let cancelled = false;
+    void listConversations().then((next) => {
+      if (cancelled) {
+        return;
+      }
+      setConversations(next);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  return conversations;
+}
+
+function useDrawerLock(
+  open: boolean,
+  setOpen: Dispatch<SetStateAction<boolean>>,
+) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -53,37 +79,95 @@ export function SiteDrawer() {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = "";
     };
-  }, [open]);
+  }, [open, setOpen]);
+}
 
-  if (pathname === "/login" || pathname === "/signup") {
-    return null;
+function ConversationLinks({
+  conversations,
+  pathname,
+  emptyLabel,
+}: {
+  conversations: Conversation[];
+  pathname: string;
+  emptyLabel: string;
+}) {
+  if (conversations.length === 0) {
+    return (
+      <p className="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+        {emptyLabel}
+      </p>
+    );
   }
+
+  return conversations.map((conversation) => {
+    const href = `/chat/${conversation.id}`;
+    return (
+      <Link
+        key={conversation.id}
+        href={href}
+        className={`${linkClassName(pathname === href)} truncate`}
+      >
+        {conversation.title}
+      </Link>
+    );
+  });
+}
+
+function drawerMotionClass(open: boolean, openClass: string, closedClass: string) {
+  if (open) {
+    return openClass;
+  }
+  return closedClass;
+}
+
+function DrawerChrome({
+  open,
+  setOpen,
+  pathname,
+  conversations,
+}: {
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+  pathname: string;
+  conversations: Conversation[];
+}) {
+  const { nav } = defaultTranslations;
+  const panelClassName = drawerMotionClass(
+    open,
+    "translate-x-0",
+    "pointer-events-none -translate-x-full",
+  );
+  const scrimClassName = drawerMotionClass(
+    open,
+    "opacity-100",
+    "pointer-events-none opacity-0",
+  );
+  const menuIcon = open ? <CloseIcon /> : <MenuIcon />;
+  const menuLabel = open ? nav.closeMenu : nav.openMenu;
 
   return (
     <>
       <button
         type="button"
-        aria-label={open ? nav.closeMenu : nav.openMenu}
+        aria-label={menuLabel}
         aria-expanded={open}
         aria-controls="site-drawer"
         onClick={() => setOpen((current) => !current)}
         className="fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-900 shadow-sm transition hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900"
       >
-        {open ? <CloseIcon /> : <MenuIcon />}
+        {menuIcon}
       </button>
 
       <div
         aria-hidden={!open}
-        className={`fixed inset-0 z-30 bg-black/40 transition-opacity ${open ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
+        className={`fixed inset-0 z-30 bg-black/40 transition-opacity ${scrimClassName}`}
         onClick={() => setOpen(false)}
       />
 
       <aside
         id="site-drawer"
         inert={!open}
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-zinc-200 bg-white pt-20 pb-4 transition-transform duration-200 ease-out dark:border-zinc-800 dark:bg-zinc-950 ${open ? "translate-x-0" : "pointer-events-none -translate-x-full"
-          }`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-zinc-200 bg-white pt-20 pb-4 transition-transform duration-200 ease-out dark:border-zinc-800 dark:bg-zinc-950 ${panelClassName}`}
       >
         <nav className="flex min-h-0 flex-1 flex-col px-4" aria-label={nav.menu}>
           <Link
@@ -95,25 +179,11 @@ export function SiteDrawer() {
           </Link>
 
           <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-            {conversations.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
-                {nav.noConversations}
-              </p>
-            ) : (
-              conversations.map((conversation) => {
-                const href = `/chat/${conversation.id}`;
-
-                return (
-                  <Link
-                    key={conversation.id}
-                    href={href}
-                    className={`${linkClassName(pathname === href)} truncate`}
-                  >
-                    {conversation.title}
-                  </Link>
-                );
-              })
-            )}
+            <ConversationLinks
+              conversations={conversations}
+              pathname={pathname}
+              emptyLabel={nav.noConversations}
+            />
           </div>
 
           <div className="mt-4 flex flex-col gap-1 border-t border-zinc-200 pt-4 dark:border-zinc-800">
@@ -130,6 +200,32 @@ export function SiteDrawer() {
         </nav>
       </aside>
     </>
+  );
+}
+
+function useSiteDrawerState() {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const conversations = useConversationsWhenOpen(open);
+  useCloseOnNavigate(pathname, setOpen);
+  useDrawerLock(open, setOpen);
+  return { open, setOpen, pathname, conversations };
+}
+
+export function SiteDrawer() {
+  const { open, setOpen, pathname, conversations } = useSiteDrawerState();
+
+  if (AUTH_PATHS.has(pathname)) {
+    return null;
+  }
+
+  return (
+    <DrawerChrome
+      open={open}
+      setOpen={setOpen}
+      pathname={pathname}
+      conversations={conversations}
+    />
   );
 }
 
