@@ -20,6 +20,37 @@
       "unavailable": "Not available",
       "unsupported": "Not supported in this browser"
     },
+    "enableGuide": {
+      "howToEnableHint": "How to enable",
+      "title": "Enable Chrome built-in AI",
+      "close": "Close",
+      "intro": "Chrome’s on-device AI APIs must be enabled before they work on a regular website. Paste each chrome:// address into Chrome’s address bar — pages cannot open those URLs for you.",
+      "steps": [
+        {
+          "text": "Use Chrome 148+ on desktop (Windows, macOS, Linux, or Chromebook Plus)."
+        },
+        {
+          "text": "Open this flag and set it to Enabled.",
+          "url": "chrome://flags/#prompt-api-for-gemini-nano"
+        },
+        {
+          "text": "Open this flag and set it to Enabled BypassPerfRequirement.",
+          "url": "chrome://flags/#optimization-guide-on-device-model"
+        },
+        {
+          "text": "Restart Chrome."
+        },
+        {
+          "text": "Verify status here.",
+          "url": "chrome://on-device-internals"
+        }
+      ],
+      "downloadNote": "On first use, Chrome downloads the Gemini Nano model (~4 GB). That download needs a user gesture (for example, clicking Generate in a demo).",
+      "copy": "Copy",
+      "copied": "Copied",
+      "docsLink": "Official docs",
+      "docsHref": "https://developer.chrome.com/docs/ai/prompt-api"
+    },
     "apis": [
       {
         "id": "prompt",
