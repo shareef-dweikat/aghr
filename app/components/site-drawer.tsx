@@ -216,12 +216,20 @@ function DrawerChrome({
 
 function useSiteDrawerState() {
   const [open, setOpen] = useState(false);
+  // Auth is restored from localStorage after mount. Suspense (useSearchParams)
+  // can delay SiteDrawer hydration until after that restore, so the first
+  // client render must still match the empty SSR name.
+  const [hydrated, setHydrated] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const conversations = useConversationsWhenOpen(open, user?.id);
   useCloseOnNavigate(pathname, setOpen);
   useDrawerLock(open, setOpen);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   async function onLogout() {
     setOpen(false);
@@ -234,7 +242,9 @@ function useSiteDrawerState() {
     setOpen,
     pathname,
     conversations,
-    displayName: user?.displayName ?? user?.email ?? "",
+    displayName: hydrated
+      ? (user?.displayName ?? user?.email ?? "")
+      : "",
     onLogout,
   };
 }
