@@ -12,10 +12,21 @@ import { HomeApiList } from "./home-api-list";
 import type { ChromeAiAvailabilityStatus } from "../lib/chrome-ai";
 
 const checkApiAvailability = vi.fn();
+const buildEnableGuideCopy = vi.fn();
 
 vi.mock("../lib/chrome-ai", () => ({
   checkApiAvailability: (...args: unknown[]) => checkApiAvailability(...args),
 }));
+
+vi.mock("../lib/build-enable-guide-copy", async () => {
+  const actual = await vi.importActual<
+    typeof import("../lib/build-enable-guide-copy")
+  >("../lib/build-enable-guide-copy");
+  return {
+    ...actual,
+    buildEnableGuideCopy: (...args: unknown[]) => buildEnableGuideCopy(...args),
+  };
+});
 
 vi.mock("next/link", () => ({
   default: function MockLink({
@@ -40,8 +51,12 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   mockAllStatuses("unsupported");
+  const actual = await vi.importActual<
+    typeof import("../lib/build-enable-guide-copy")
+  >("../lib/build-enable-guide-copy");
+  buildEnableGuideCopy.mockImplementation(actual.buildEnableGuideCopy);
 });
 
 describe("HomeApiList", () => {
@@ -61,13 +76,13 @@ describe("HomeApiList", () => {
     await user.click(promptCard);
 
     const dialog = screen.getByRole("dialog", {
-      name: /Enable Chrome built-in AI/i,
+      name: /Enable Prompt API/i,
     });
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveAttribute("aria-modal", "true");
   });
 
-  it("opens the same dialog from a blocked card that has no demo link", async () => {
+  it("opens a named Writer guide from a blocked card that has no demo link", async () => {
     const user = userEvent.setup();
     render(<HomeApiList />);
 
@@ -77,7 +92,7 @@ describe("HomeApiList", () => {
     await user.click(writerCard);
 
     expect(
-      screen.getByRole("dialog", { name: /Enable Chrome built-in AI/i }),
+      screen.getByRole("dialog", { name: /Enable Writer API/i }),
     ).toBeInTheDocument();
   });
 
@@ -94,7 +109,7 @@ describe("HomeApiList", () => {
     await user.click(promptCard);
 
     expect(
-      screen.getByRole("dialog", { name: /Enable Chrome built-in AI/i }),
+      screen.getByRole("dialog", { name: /Enable Prompt API/i }),
     ).toBeInTheDocument();
   });
 
@@ -154,11 +169,11 @@ describe("HomeApiList", () => {
       screen.queryByRole("button", { name: /Prompt API/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("dialog", { name: /Enable Chrome built-in AI/i }),
+      screen.queryByRole("dialog", { name: /Enable Prompt API/i }),
     ).not.toBeInTheDocument();
   });
 
-  it("shows the shared checklist, copy controls, and official docs link", async () => {
+  it("shows Prompt checklist, copy controls, and Prompt docs", async () => {
     const user = userEvent.setup();
     render(<HomeApiList />);
 
@@ -166,7 +181,7 @@ describe("HomeApiList", () => {
       await screen.findByRole("button", { name: /Prompt API/i }),
     );
 
-    const dialog = screen.getByRole("dialog");
+    const dialog = screen.getByRole("dialog", { name: /Enable Prompt API/i });
     expect(dialog).toHaveTextContent(/Chrome 148\+/i);
     expect(dialog).toHaveTextContent(
       "chrome://flags/#prompt-api-for-gemini-nano",
@@ -190,11 +205,96 @@ describe("HomeApiList", () => {
       within(dialog).getAllByRole("button", { name: /^Copy$/i }),
     ).toHaveLength(3);
 
-    // chrome:// must not be linked for navigation
     expect(
       within(dialog).queryByRole("link", {
         name: /chrome:\/\/flags\/#prompt-api-for-gemini-nano/i,
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows Summarizer-specific flag and docs", async () => {
+    const user = userEvent.setup();
+    render(<HomeApiList />);
+
+    await user.click(
+      await screen.findByRole("button", { name: /Summarizer API/i }),
+    );
+
+    const dialog = screen.getByRole("dialog", {
+      name: /Enable Summarizer API/i,
+    });
+    expect(dialog).toHaveTextContent(
+      "chrome://flags/#summarization-api-for-gemini-nano",
+    );
+    expect(dialog).not.toHaveTextContent(
+      "chrome://flags/#prompt-api-for-gemini-nano",
+    );
+    expect(
+      within(dialog).getByRole("link", { name: /Official docs/i }),
+    ).toHaveAttribute(
+      "href",
+      "https://developer.chrome.com/docs/ai/summarizer-api",
+    );
+  });
+
+  it("shows Writer multi-flag step with plural wording", async () => {
+    const user = userEvent.setup();
+    render(<HomeApiList />);
+
+    await user.click(
+      await screen.findByRole("button", { name: /^Writer API/ }),
+    );
+
+    const dialog = screen.getByRole("dialog", { name: /Enable Writer API/i });
+    expect(dialog).toHaveTextContent(/Open these flags and set each to Enabled/i);
+    expect(dialog).toHaveTextContent(
+      "chrome://flags/#prompt-api-for-gemini-nano-multimodal-input",
+    );
+    expect(dialog).toHaveTextContent(
+      "chrome://flags/#writer-api-for-gemini-nano",
+    );
+    expect(
+      within(dialog).getAllByRole("button", { name: /^Copy$/i }),
+    ).toHaveLength(4);
+  });
+
+  it("shows Translator expert-model guide without optimization-guide step", async () => {
+    const user = userEvent.setup();
+    render(<HomeApiList />);
+
+    await user.click(
+      await screen.findByRole("button", { name: /Translator API/i }),
+    );
+
+    const dialog = screen.getByRole("dialog", {
+      name: /Enable Translator API/i,
+    });
+    expect(dialog).toHaveTextContent("chrome://flags/#translation-api");
+    expect(dialog).not.toHaveTextContent(
+      "chrome://flags/#optimization-guide-on-device-model",
+    );
+    expect(dialog).not.toHaveTextContent(/~4 GB/i);
+    expect(dialog).toHaveTextContent(/expert model/i);
+    expect(
+      within(dialog).getByRole("link", { name: /Official docs/i }),
+    ).toHaveAttribute(
+      "href",
+      "https://developer.chrome.com/docs/ai/translator-api",
+    );
+    expect(
+      within(dialog).getAllByRole("button", { name: /^Copy$/i }),
+    ).toHaveLength(2);
+  });
+
+  it("does not open the dialog when enable metadata is missing", async () => {
+    buildEnableGuideCopy.mockReturnValue(null);
+    const user = userEvent.setup();
+    render(<HomeApiList />);
+
+    await user.click(
+      await screen.findByRole("button", { name: /Prompt API/i }),
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

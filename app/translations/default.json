@@ -22,34 +22,71 @@
     },
     "enableGuide": {
       "howToEnableHint": "How to enable",
-      "title": "Enable Chrome built-in AI",
+      "titleTemplate": "Enable {apiName}",
+      "introTemplate": "The {apiName} must be enabled before it works on a regular website. Paste each chrome:// address into Chrome’s address bar — pages cannot open those URLs for you.",
       "close": "Close",
-      "intro": "Chrome’s on-device AI APIs must be enabled before they work on a regular website. Paste each chrome:// address into Chrome’s address bar — pages cannot open those URLs for you.",
-      "steps": [
-        {
-          "text": "Use Chrome 148+ on desktop (Windows, macOS, Linux, or Chromebook Plus)."
-        },
-        {
-          "text": "Open this flag and set it to Enabled.",
-          "url": "chrome://flags/#prompt-api-for-gemini-nano"
-        },
-        {
-          "text": "Open this flag and set it to Enabled BypassPerfRequirement.",
-          "url": "chrome://flags/#optimization-guide-on-device-model"
-        },
-        {
-          "text": "Restart Chrome."
-        },
-        {
-          "text": "Verify status here.",
-          "url": "chrome://on-device-internals"
-        }
-      ],
-      "downloadNote": "On first use, Chrome downloads the Gemini Nano model (~4 GB). That download needs a user gesture (for example, clicking Generate in a demo).",
+      "chromeVersionStep": "Use Chrome 148+ on desktop (Windows, macOS, Linux, or Chromebook Plus).",
+      "apiFlagStepSingular": "Open this flag and set it to Enabled.",
+      "apiFlagStepPlural": "Open these flags and set each to Enabled.",
+      "optimizationGuideStep": {
+        "text": "Open this flag and set it to Enabled BypassPerfRequirement.",
+        "urls": ["chrome://flags/#optimization-guide-on-device-model"]
+      },
+      "restartStep": "Restart Chrome.",
+      "verifyStep": {
+        "text": "Verify status here.",
+        "urls": ["chrome://on-device-internals"]
+      },
+      "downloadNotes": {
+        "geminiNano": "On first use, Chrome downloads the Gemini Nano model (~4 GB). That download needs a user gesture (for example, clicking Generate in a demo).",
+        "expert": "On first use, Chrome may download a small on-device expert model. That download needs a user gesture (for example, starting a demo)."
+      },
       "copy": "Copy",
       "copied": "Copied",
       "docsLink": "Official docs",
-      "docsHref": "https://developer.chrome.com/docs/ai/prompt-api"
+      "byApi": {
+        "prompt": {
+          "flagUrls": ["chrome://flags/#prompt-api-for-gemini-nano"],
+          "docsHref": "https://developer.chrome.com/docs/ai/prompt-api",
+          "modelFamily": "geminiNano"
+        },
+        "summarizer": {
+          "flagUrls": ["chrome://flags/#summarization-api-for-gemini-nano"],
+          "docsHref": "https://developer.chrome.com/docs/ai/summarizer-api",
+          "modelFamily": "geminiNano"
+        },
+        "writer": {
+          "flagUrls": [
+            "chrome://flags/#prompt-api-for-gemini-nano-multimodal-input",
+            "chrome://flags/#writer-api-for-gemini-nano"
+          ],
+          "docsHref": "https://developer.chrome.com/docs/ai/writer-api",
+          "modelFamily": "geminiNano"
+        },
+        "rewriter": {
+          "flagUrls": [
+            "chrome://flags/#prompt-api-for-gemini-nano-multimodal-input",
+            "chrome://flags/#rewriter-api-for-gemini-nano"
+          ],
+          "docsHref": "https://developer.chrome.com/docs/ai/rewriter-api",
+          "modelFamily": "geminiNano"
+        },
+        "proofreader": {
+          "flagUrls": ["chrome://flags/#proofreader-api"],
+          "docsHref": "https://developer.chrome.com/docs/ai/proofreader-api",
+          "modelFamily": "geminiNano"
+        },
+        "translator": {
+          "flagUrls": ["chrome://flags/#translation-api"],
+          "docsHref": "https://developer.chrome.com/docs/ai/translator-api",
+          "modelFamily": "expert"
+        },
+        "language-detector": {
+          "flagUrls": ["chrome://flags/#language-detection-api"],
+          "docsHref": "https://developer.chrome.com/docs/ai/language-detection",
+          "modelFamily": "expert"
+        }
+      }
     },
     "apis": [
       {

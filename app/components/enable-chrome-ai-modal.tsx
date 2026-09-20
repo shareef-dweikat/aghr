@@ -10,7 +10,7 @@ import {
 
 export type EnableGuideStep = {
   text: string;
-  url?: string;
+  urls?: string[];
 };
 
 export type EnableGuideCopy = {
@@ -163,15 +163,16 @@ export function EnableChromeAiModal({
 
         <ol className="mb-4 list-decimal space-y-3 pl-5 text-sm text-zinc-800 dark:text-zinc-200">
           {copy.steps.map((step) => (
-            <li key={`${step.text}-${step.url ?? ""}`}>
+            <li key={`${step.text}-${(step.urls ?? []).join("|")}`}>
               <span>{step.text}</span>
-              {step.url ? (
+              {step.urls?.map((url) => (
                 <CopyableUrl
-                  url={step.url}
+                  key={url}
+                  url={url}
                   copyLabel={copy.copy}
                   copiedLabel={copy.copied}
                 />
-              ) : null}
+              ))}
             </li>
           ))}
         </ol>

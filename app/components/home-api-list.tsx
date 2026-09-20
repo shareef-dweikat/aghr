@@ -10,6 +10,10 @@ import {
 import { LinkButton } from "./link-button";
 
 import {
+  buildEnableGuideCopy,
+  type EnableGuideConfig,
+} from "../lib/build-enable-guide-copy";
+import {
   checkApiAvailability,
   type ChromeAiAvailabilityStatus,
 } from "../lib/chrome-ai";
@@ -55,6 +59,18 @@ const BLOCKED_STATUSES = new Set<CardStatus>(["unsupported", "unavailable"]);
 const INTERACTIVE_CARD_CLASS =
   "transition hover:border-zinc-400 dark:hover:border-zinc-600";
 
+const EMPTY_GUIDE_COPY: EnableGuideCopy = {
+  title: "",
+  close: "",
+  intro: "",
+  steps: [],
+  downloadNote: "",
+  copy: "",
+  copied: "",
+  docsLink: "",
+  docsHref: "",
+};
+
 function isBlockedStatus(status: CardStatus): boolean {
   return BLOCKED_STATUSES.has(status);
 }
@@ -83,13 +99,14 @@ export function HomeApiList() {
   }: {
     apis: HomeApi[];
     availability: Availability;
-    enableGuide: EnableGuideCopy & { howToEnableHint: string };
+    enableGuide: EnableGuideConfig;
   } = defaultTranslations.home;
 
   const [statuses, setStatuses] = useState<Partial<Record<string, CardStatus>>>(
     {},
   );
   const [guideOpen, setGuideOpen] = useState(false);
+  const [guideCopy, setGuideCopy] = useState<EnableGuideCopy | null>(null);
   const activatorRef = useRef<HTMLElement | null>(null);
   const cardRefs = useRef<Partial<Record<string, HTMLElement | null>>>({});
 
@@ -112,8 +129,13 @@ export function HomeApiList() {
     };
   }, []);
 
-  function openGuide(apiId: string) {
-    activatorRef.current = cardRefs.current[apiId] ?? null;
+  function openGuide(api: HomeApi) {
+    const copy = buildEnableGuideCopy(api, enableGuide);
+    if (!copy) {
+      return;
+    }
+    activatorRef.current = cardRefs.current[api.id] ?? null;
+    setGuideCopy(copy);
     setGuideOpen(true);
   }
 
@@ -157,7 +179,7 @@ export function HomeApiList() {
                   }}
                   className={`${cardClassName} cursor-pointer ${INTERACTIVE_CARD_CLASS}`}
                   aria-haspopup="dialog"
-                  onClick={() => openGuide(api.id)}
+                  onClick={() => openGuide(api)}
                 >
                   {body}
                 </button>
@@ -180,7 +202,7 @@ export function HomeApiList() {
         open={guideOpen}
         onClose={closeGuide}
         returnFocusRef={activatorRef}
-        copy={enableGuide}
+        copy={guideCopy ?? EMPTY_GUIDE_COPY}
       />
     </>
   );
