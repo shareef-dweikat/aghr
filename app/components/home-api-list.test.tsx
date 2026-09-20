@@ -82,7 +82,7 @@ describe("HomeApiList", () => {
     expect(dialog).toHaveAttribute("aria-modal", "true");
   });
 
-  it("opens a named Writer guide from a blocked card that has no demo link", async () => {
+  it("opens a named Writer guide from a blocked card", async () => {
     const user = userEvent.setup();
     render(<HomeApiList />);
 
@@ -156,6 +156,19 @@ describe("HomeApiList", () => {
       screen.queryByRole("button", { name: /Prompt API/i }),
     ).not.toBeInTheDocument();
     expect(promptLink).not.toHaveTextContent(/How to enable/i);
+  });
+
+  it("keeps available Writer cards as links to the demo", async () => {
+    mockAllStatuses("available");
+    render(<HomeApiList />);
+
+    const writerLink = await screen.findByRole("link", {
+      name: /^Writer API/,
+    });
+    expect(writerLink).toHaveAttribute("href", "/chat?api=writer");
+    expect(
+      screen.queryByRole("button", { name: /^Writer API/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("does not turn checking cards into enablement actions", async () => {

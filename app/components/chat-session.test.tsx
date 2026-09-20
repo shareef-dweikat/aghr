@@ -26,6 +26,12 @@ vi.mock("./summarizer-api-demo", () => ({
   ),
 }));
 
+vi.mock("./writer-api-demo", () => ({
+  WriterApiDemo: ({ conversationId }: { conversationId: string }) => (
+    <div>writer:{conversationId}</div>
+  ),
+}));
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -69,6 +75,17 @@ describe("ExistingChatSession", () => {
 
     await waitFor(() => {
       expect(screen.getByText("prompt:c2")).toBeInTheDocument();
+    });
+  });
+
+  it("routes writer apiHint to the Writer demo", async () => {
+    useAuth.mockReturnValue({ user: { id: "u1" } });
+    getConversation.mockResolvedValue(null);
+
+    render(<ExistingChatSession conversationId="c3" apiHint="writer" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("writer:c3")).toBeInTheDocument();
     });
   });
 });

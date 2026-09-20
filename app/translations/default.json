@@ -104,7 +104,8 @@
       {
         "id": "writer",
         "name": "Writer API",
-        "description": "Generating new content"
+        "description": "Generating new content",
+        "href": "/chat?api=writer"
       },
       {
         "id": "rewriter",

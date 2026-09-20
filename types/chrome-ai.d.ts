@@ -95,10 +95,45 @@ interface Summarizer {
   create(options?: SummarizerCreateOptions): Promise<SummarizerSession>;
 }
 
+type WriterTone = "formal" | "neutral" | "casual";
+type WriterFormat = "plain-text" | "markdown";
+type WriterLength = "short" | "medium" | "long";
+
+interface WriterCreateOptions {
+  sharedContext?: string;
+  tone?: WriterTone;
+  format?: WriterFormat;
+  length?: WriterLength;
+  expectedInputLanguages?: string[];
+  expectedContextLanguages?: string[];
+  outputLanguage?: string;
+  signal?: AbortSignal;
+  monitor?: (monitor: EventTarget) => void;
+}
+
+interface WriterWriteOptions {
+  context?: string;
+  signal?: AbortSignal;
+}
+
+interface WriterSession {
+  write(input: string, options?: WriterWriteOptions): Promise<string>;
+  writeStreaming(
+    input: string,
+    options?: WriterWriteOptions,
+  ): AsyncIterable<string>;
+  destroy(): void;
+}
+
 interface Writer {
   availability(
-    options?: LanguageAwareAvailabilityOptions,
+    options?: LanguageAwareAvailabilityOptions &
+      Pick<
+        WriterCreateOptions,
+        "tone" | "format" | "length" | "expectedInputLanguages" | "outputLanguage"
+      >,
   ): Promise<ChromeAiAvailability | null>;
+  create(options?: WriterCreateOptions): Promise<WriterSession>;
 }
 
 interface Rewriter {

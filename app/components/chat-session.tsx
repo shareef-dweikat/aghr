@@ -10,6 +10,7 @@ import {
 } from "../lib/conversations";
 import { PromptApiDemo } from "./prompt-api-demo";
 import { SummarizerApiDemo } from "./summarizer-api-demo";
+import { WriterApiDemo } from "./writer-api-demo";
 
 function ChatDemo({
   apiId,
@@ -20,6 +21,10 @@ function ChatDemo({
 }) {
   if (apiId === "summarizer") {
     return <SummarizerApiDemo conversationId={conversationId} />;
+  }
+
+  if (apiId === "writer") {
+    return <WriterApiDemo conversationId={conversationId} />;
   }
 
   return <PromptApiDemo conversationId={conversationId} />;

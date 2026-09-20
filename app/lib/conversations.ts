@@ -1,4 +1,4 @@
-export type ChatApiId = "prompt" | "summarizer";
+export type ChatApiId = "prompt" | "summarizer" | "writer";
 
 export type ConversationMessage = {
   role: "user" | "assistant";
@@ -282,5 +282,5 @@ export async function upsertConversation(input: {
 }
 
 export function isChatApiId(value: string | undefined | null): value is ChatApiId {
-  return value === "prompt" || value === "summarizer";
+  return value === "prompt" || value === "summarizer" || value === "writer";
 }
